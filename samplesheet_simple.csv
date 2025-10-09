@@ -1,0 +1,2 @@
+sample,fastq_1,fastq_2,condition,strandedness
+SRR23195511,./fastq/SRR23195511_1_sub500.fastq.gz,./fastq/SRR23195511_2_sub500.fastq.gz,control,auto

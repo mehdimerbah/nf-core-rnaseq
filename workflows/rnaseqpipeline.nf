@@ -3,8 +3,7 @@
     IMPORT MODULES / SUBWORKFLOWS / FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-include { FASTQC                 } from '../modules/nf-core/fastqc/main'                // QC
-include { FASTQC_TRIMMED         } from '../modules/local/fastqc_trimmed/main'          // QC on trimmed reads
+include { FASTQC as FASTQC; FASTQC as FASTQC_TRIMMED              } from '../modules/nf-core/fastqc/main'                // QC       // QC on trimmed reads
 include { MULTIQC                } from '../modules/nf-core/multiqc/main'               // QC
 include { MULTIQC_TRIMMED        } from '../modules/local/multiqc_trimmed/main'         // QC on trimmed reads
 include { TRIMGALORE             } from '../modules/nf-core/trimgalore/main'

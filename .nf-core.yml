@@ -6,9 +6,9 @@ lint: {}
 
 template:
   org: nf-core
-  name: rnaseqpipelinetest
+  name: rnaseqpipeline
   description: A test pipeline for RNAseq
-  author: Nicolai Oswald
+  author: Nicolai Oswald, Mehdi Merbah
   version: 1.0.0dev
   force: true
   outdir: .
