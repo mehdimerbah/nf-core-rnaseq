@@ -1,4 +1,4 @@
-# nf-core/rnaseqpipelinetest: Output
+# nf-core/rnaseqpipeline: Output
 
 ## Introduction
 

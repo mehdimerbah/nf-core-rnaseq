@@ -1,11 +1,11 @@
 #!/usr/bin/env nextflow
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    nf-core/rnaseqpipelinetest
+    nf-core/rnaseqpipeline
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    Github : https://github.com/nf-core/rnaseqpipelinetest
-    Website: https://nf-co.re/rnaseqpipelinetest
-    Slack  : https://nfcore.slack.com/channels/rnaseqpipelinetest
+    Github : https://github.com/nf-core/rnaseqpipeline
+    Website: https://nf-co.re/rnaseqpipeline
+    Slack  : https://nfcore.slack.com/channels/rnaseqpipeline
 ----------------------------------------------------------------------------------------
 */
 
@@ -15,7 +15,7 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-include { RNASEQPIPELINETEST  } from './workflows/rnaseqpipeline'
+include { RNASEQPIPELINE  } from './workflows/rnaseqpipeline'
 include { PIPELINE_INITIALISATION } from './subworkflows/local/utils_nfcore_rnaseqpipeline_pipeline'
 include { PIPELINE_COMPLETION     } from './subworkflows/local/utils_nfcore_rnaseqpipeline_pipeline'
 include { getGenomeAttribute      } from './subworkflows/local/utils_nfcore_rnaseqpipeline_pipeline'
@@ -40,7 +40,7 @@ params.fasta = getGenomeAttribute('fasta')
 //
 // WORKFLOW: Run main analysis pipeline depending on type of input
 //
-workflow NFCORE_RNASEQPIPELINETEST {
+workflow NFCORE_RNASEQPIPELINE {
 
     take:
     samplesheet // channel: samplesheet read in from --input
@@ -50,12 +50,12 @@ workflow NFCORE_RNASEQPIPELINETEST {
     //
     // WORKFLOW: Run pipeline
     //
-    RNASEQPIPELINETEST (
+    RNASEQPIPELINE (
         samplesheet
     )
     emit:
-    multiqc_report = RNASEQPIPELINETEST.out.multiqc_report // channel: /path/to/multiqc_report.html
-    // trimmomatic_summary = RNASEQPIPELINETEST.out.trimmomatic_summary
+    multiqc_report = RNASEQPIPELINE.out.multiqc_report // channel: /path/to/multiqc_report.html
+    // trimmomatic_summary = RNASEQPIPELINE.out.trimmomatic_summary
 }
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -81,7 +81,7 @@ workflow {
     //
     // WORKFLOW: Run main workflow
     //
-    NFCORE_RNASEQPIPELINETEST (
+    NFCORE_RNASEQPIPELINE (
         PIPELINE_INITIALISATION.out.samplesheet
     )
     //
@@ -94,7 +94,7 @@ workflow {
         params.outdir,
         params.monochrome_logs,
         params.hook_url,
-        NFCORE_RNASEQPIPELINETEST.out.multiqc_report
+        NFCORE_RNASEQPIPELINE.out.multiqc_report
     )
 }
 

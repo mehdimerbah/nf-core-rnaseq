@@ -1,5 +1,5 @@
 //
-// Subworkflow with functionality specific to the nf-core/rnaseqpipelinetest pipeline
+// Subworkflow with functionality specific to the nf-core/rnaseqpipeline pipeline
 //
 
 /*

@@ -1,6 +1,6 @@
 {
-    "name": "nf-core/rnaseqpipelinetest",
-    "homePage": "https://github.com/nf-core/rnaseqpipelinetest",
+    "name": "nf-core/rnaseqpipeline",
+    "homePage": "https://github.com/nf-core/rnaseqpipeline",
     "repos": {
         "https://github.com/nf-core/modules.git": {
             "modules": {

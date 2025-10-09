@@ -1,4 +1,4 @@
-# nf-core/rnaseqpipelinetest: Citations
+# nf-core/rnaseqpipeline: Citations
 
 ## [nf-core](https://pubmed.ncbi.nlm.nih.gov/32055031/)
 
