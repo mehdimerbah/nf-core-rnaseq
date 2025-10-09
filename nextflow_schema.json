@@ -79,6 +79,80 @@
                     "fa_icon": "fas fa-ban",
                     "hidden": true,
                     "default": "s3://ngi-igenomes/igenomes/"
+                },
+                "igenomes_reference": {
+                    "type": "string",
+                    "default": "GRCm38",
+                    "description": "Reference genome ID for iGenomes configuration.",
+                    "fa_icon": "fas fa-book"
+                }
+            }
+        },
+        "fastqc_options": {
+            "title": "FastQC options",
+            "type": "object",
+            "fa_icon": "fas fa-search",
+            "description": "Options for FastQC quality control analysis.",
+            "properties": {
+                "fastqc_threads": {
+                    "type": "string",
+                    "default": "32",
+                    "description": "Number of threads to use for FastQC analysis.",
+                    "fa_icon": "fas fa-microchip"
+                }
+            }
+        },
+        "trimgalore_options": {
+            "title": "TrimGalore options",
+            "type": "object",
+            "fa_icon": "fas fa-cut",
+            "description": "Options for TrimGalore adapter trimming and quality control.",
+            "properties": {
+                "trimgalore_min_length": {
+                    "type": "string",
+                    "default": "20",
+                    "description": "Minimum length of reads after trimming.",
+                    "fa_icon": "fas fa-ruler"
+                },
+                "trimgalore_min_qual": {
+                    "type": "string",
+                    "default": "20",
+                    "description": "Minimum quality score for trimming.",
+                    "fa_icon": "fas fa-chart-line"
+                }
+            }
+        },
+        "star_options": {
+            "title": "STAR aligner options",
+            "type": "object",
+            "fa_icon": "fas fa-map-signs",
+            "description": "Options for STAR RNA-seq alignment.",
+            "properties": {
+                "readFilesCommand": {
+                    "type": "string",
+                    "default": "zcat",
+                    "description": "Command to read compressed input files.",
+                    "fa_icon": "fas fa-file-archive"
+                },
+                "outSAMtype": {
+                    "type": "string",
+                    "default": "BAM SortedByCoordinate",
+                    "description": "Output format and sorting type for STAR alignment.",
+                    "fa_icon": "fas fa-sort"
+                }
+            }
+        },
+        "picard_options": {
+            "title": "Picard options",
+            "type": "object",
+            "fa_icon": "fas fa-hammer",
+            "description": "Options for Picard tools.",
+            "properties": {
+                "picard_prefix": {
+                    "type": "string",
+                    "default": "picard",
+                    "description": "Prefix for Picard output files.",
+                    "fa_icon": "fas fa-tag"
                 }
             }
         },
@@ -234,6 +308,18 @@
         },
         {
             "$ref": "#/$defs/reference_genome_options"
+        },
+        {
+            "$ref": "#/$defs/fastqc_options"
+        },
+        {
+            "$ref": "#/$defs/trimgalore_options"
+        },
+        {
+            "$ref": "#/$defs/star_options"
+        },
+        {
+            "$ref": "#/$defs/picard_options"
         },
         {
             "$ref": "#/$defs/institutional_config_options"
