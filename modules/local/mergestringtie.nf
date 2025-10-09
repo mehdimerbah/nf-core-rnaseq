@@ -46,6 +46,9 @@ conda "${moduleDir}/environment.yml"
     # Sort by Gene ID
     merged_df.sort_values("gene_id", inplace=True)
 
+    # Sort columns by sample
+    merged_df = merged_df[['gene_id', 'gene_name'] + sorted(merged_df.columns.difference(['gene_id', 'gene_name']))]
+
     # Save result
     merged_df.to_csv("${params.genetable_outfile}.tsv", sep="\t", index=False)
     """
