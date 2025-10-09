@@ -15,10 +15,10 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-include { RNASEQPIPELINETEST  } from './workflows/rnaseqpipelinetest'
-include { PIPELINE_INITIALISATION } from './subworkflows/local/utils_nfcore_rnaseqpipelinetest_pipeline'
-include { PIPELINE_COMPLETION     } from './subworkflows/local/utils_nfcore_rnaseqpipelinetest_pipeline'
-include { getGenomeAttribute      } from './subworkflows/local/utils_nfcore_rnaseqpipelinetest_pipeline'
+include { RNASEQPIPELINETEST  } from './workflows/rnaseqpipeline'
+include { PIPELINE_INITIALISATION } from './subworkflows/local/utils_nfcore_rnaseqpipeline_pipeline'
+include { PIPELINE_COMPLETION     } from './subworkflows/local/utils_nfcore_rnaseqpipeline_pipeline'
+include { getGenomeAttribute      } from './subworkflows/local/utils_nfcore_rnaseqpipeline_pipeline'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
