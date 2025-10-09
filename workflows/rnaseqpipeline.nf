@@ -34,10 +34,10 @@ workflow RNASEQPIPELINE {
     
     main:
 
-    // ch_samplesheet.view { it -> "INPUT SAMPLESHEET: $it" }
 
     ch_versions = Channel.empty()
     ch_multiqc_files = Channel.empty()
+
     //
     // MODULE: Run FastQC
     //
@@ -58,6 +58,7 @@ workflow RNASEQPIPELINE {
             sort: true,
             newLine: true
         ).set { ch_collated_versions }
+
 
     //
     // MODULE: MultiQC
@@ -90,7 +91,9 @@ workflow RNASEQPIPELINE {
         )
     )
 
-
+    //
+    // MODULE: MultiQC
+    //
     MULTIQC (
         ch_multiqc_files.collect(),
         ch_multiqc_config.toList(),
@@ -111,6 +114,7 @@ workflow RNASEQPIPELINE {
     TRIMGALORE.out.reads
             .set { ch_samplesheet_trimmed }
 
+
     //
     // MODULE: Run FastQC on TRIMMED
     //
@@ -120,6 +124,7 @@ workflow RNASEQPIPELINE {
     ch_multiqc_files = ch_multiqc_files.mix(FASTQC_TRIMMED.out.zip.collect{it[1]})
 
     ch_versions = ch_versions.mix(FASTQC.out.versions.first())
+
 
     //
     // Collate and save software versions
@@ -131,6 +136,7 @@ workflow RNASEQPIPELINE {
             sort: true,
             newLine: true
         ).set { ch_collated_versions }
+
 
     //
     // MODULE: MultiQC on TRIMMED
@@ -173,8 +179,6 @@ workflow RNASEQPIPELINE {
         []
     )
 
-    ///////////////////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////
     //
     // Module: STAR_ALIGN
     
@@ -186,7 +190,6 @@ workflow RNASEQPIPELINE {
         ch_gtf
     )
 
-    // ch_star_in = ch_samplesheet_trimmed.co
 
     STAR_ALIGN (
         ch_samplesheet_trimmed,
@@ -198,7 +201,7 @@ workflow RNASEQPIPELINE {
     )
 
     //
-    // Module: samtools
+    // Module: SAMTOOLS sort, index, stats
     //
     SAMTOOLS_SORT (
             STAR_ALIGN.out.bam,
@@ -236,7 +239,7 @@ workflow RNASEQPIPELINE {
     //
 
 
-    // create reference .fai
+    // Local Module IndexFasta: create reference .fai index file
     INDEXFASTA ( ch_fasta )
     INDEXFASTA.out.fai.set { ch_fai }
 
@@ -256,9 +259,6 @@ workflow RNASEQPIPELINE {
         gtf_channel.collect()
     )
 
-
-    // STRINGTIE_STRINGTIE.out.transcript_gtf.view{ it -> "STRINGTIE transcript_gtf: $it" }
-    // STRINGTIE_STRINGTIE.out.abundance.view{ it -> "STRINGTIE abundance: $it" }
 
     emit:
         multiqc_report = MULTIQC_TRIMMED.out.report.toList() // channel: /path/to/multiqc_report.html
