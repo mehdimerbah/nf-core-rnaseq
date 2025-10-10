@@ -156,6 +156,20 @@
                 }
             }
         },
+        "mergestringtie_options": {
+            "title": "StringTie merge options",
+            "type": "object",
+            "fa_icon": "fas fa-compress",
+            "description": "Options for merging StringTie output.",
+            "properties": {
+                "genetable_outfile": {
+                    "type": "string",
+                    "default": "gene_table_TPM",
+                    "description": "Prefix for merged StringTie output files.",
+                    "fa_icon": "fas fa-tag"
+                }
+            }
+        },
         "institutional_config_options": {
             "title": "Institutional config options",
             "type": "object",
@@ -320,6 +334,9 @@
         },
         {
             "$ref": "#/$defs/picard_options"
+        },
+        {
+            "$ref": "#/$defs/mergestringtie_options"
         },
         {
             "$ref": "#/$defs/institutional_config_options"
