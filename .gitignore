@@ -9,3 +9,4 @@ testing*
 null/
 fastq*/
 !fastqc/
+scripts*/
