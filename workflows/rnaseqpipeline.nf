@@ -46,64 +46,7 @@ workflow RNASEQPIPELINE {
         ch_samplesheet
     )
     ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
-
     ch_versions = ch_versions.mix(FASTQC.out.versions.first())
-
-    //
-    // Collate and save software versions
-    //
-    softwareVersionsToYAML(ch_versions)
-        .collectFile(
-            storeDir: "${params.outdir}/pipeline_info",
-            name: 'nf_core_'  +  'rnaseqpipeline_software_'  + 'mqc_'  + 'versions.yml',
-            sort: true,
-            newLine: true
-        ).set { ch_collated_versions }
-
-
-    //
-    // MODULE: MultiQC
-    //
-    ch_multiqc_config        = Channel.fromPath(
-        "$projectDir/assets/multiqc_config.yml", checkIfExists: true)
-    ch_multiqc_custom_config = params.multiqc_config ?
-        Channel.fromPath(params.multiqc_config, checkIfExists: true) :
-        Channel.empty()
-    ch_multiqc_logo          = params.multiqc_logo ?
-        Channel.fromPath(params.multiqc_logo, checkIfExists: true) :
-        Channel.empty()
-
-    summary_params      = paramsSummaryMap(
-        workflow, parameters_schema: "nextflow_schema.json")
-    ch_workflow_summary = Channel.value(paramsSummaryMultiqc(summary_params))
-    ch_multiqc_files = ch_multiqc_files.mix(
-        ch_workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml'))
-    ch_multiqc_custom_methods_description = params.multiqc_methods_description ?
-        file(params.multiqc_methods_description, checkIfExists: true) :
-        file("$projectDir/assets/methods_description_template.yml", checkIfExists: true)
-    ch_methods_description                = Channel.value(
-        methodsDescriptionText(ch_multiqc_custom_methods_description))
-
-    ch_multiqc_files = ch_multiqc_files.mix(ch_collated_versions)
-    ch_multiqc_files = ch_multiqc_files.mix(
-        ch_methods_description.collectFile(
-            name: 'methods_description_mqc.yaml',
-            sort: true
-        )
-    )
-
-    //
-    // MODULE: MultiQC
-    //
-    MULTIQC (
-        ch_multiqc_files.collect(),
-        ch_multiqc_config.toList(),
-        ch_multiqc_custom_config.toList(),
-        ch_multiqc_logo.toList(),
-        [],
-        []
-    )
-
 
     //
     // Module: TRIMGALORE
@@ -115,6 +58,8 @@ workflow RNASEQPIPELINE {
     TRIMGALORE.out.reads
             .set { ch_samplesheet_trimmed }
 
+    ch_versions = ch_versions.mix(TRIMGALORE.out.versions.first())
+    ch_multiqc_files = ch_multiqc_files.mix(TRIMGALORE.out.log.collect{it[1]})
 
     //
     // MODULE: Run FastQC on TRIMMED
@@ -123,66 +68,11 @@ workflow RNASEQPIPELINE {
         ch_samplesheet_trimmed
     )
     ch_multiqc_files = ch_multiqc_files.mix(FASTQC_TRIMMED.out.zip.collect{it[1]})
-
-    ch_versions = ch_versions.mix(FASTQC.out.versions.first())
-
+    ch_versions = ch_versions.mix(FASTQC_TRIMMED.out.versions.first())
 
     //
-    // Collate and save software versions
+    // Module: STAR_GENOMEGENERATE & STAR_ALIGN
     //
-    softwareVersionsToYAML(ch_versions)
-        .collectFile(
-            storeDir: "${params.outdir}/pipeline_info",
-            name: 'nf_core_'  +  'rnaseqpipeline_software_'  + 'mqc_'  + 'versions.yml',
-            sort: true,
-            newLine: true
-        ).set { ch_collated_versions }
-
-
-    //
-    // MODULE: MultiQC on TRIMMED
-    //
-    ch_multiqc_config        = Channel.fromPath(
-        "$projectDir/assets/multiqc_config.yml", checkIfExists: true)
-    ch_multiqc_custom_config = params.multiqc_config ?
-        Channel.fromPath(params.multiqc_config, checkIfExists: true) :
-        Channel.empty()
-    ch_multiqc_logo          = params.multiqc_logo ?
-        Channel.fromPath(params.multiqc_logo, checkIfExists: true) :
-        Channel.empty()
-
-    summary_params      = paramsSummaryMap(
-        workflow, parameters_schema: "nextflow_schema.json")
-    ch_workflow_summary = Channel.value(paramsSummaryMultiqc(summary_params))
-    ch_multiqc_files = ch_multiqc_files.mix(
-        ch_workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml'))
-    ch_multiqc_custom_methods_description = params.multiqc_methods_description ?
-        file(params.multiqc_methods_description, checkIfExists: true) :
-        file("$projectDir/assets/methods_description_template.yml", checkIfExists: true)
-    ch_methods_description                = Channel.value(
-        methodsDescriptionText(ch_multiqc_custom_methods_description))
-
-    ch_multiqc_files = ch_multiqc_files.mix(ch_collated_versions)
-    ch_multiqc_files = ch_multiqc_files.mix(
-        ch_methods_description.collectFile(
-            name: 'methods_description_mqc.yaml',
-            sort: true
-        )
-    )
-
-
-    MULTIQC_TRIMMED (
-        ch_multiqc_files.collect(),
-        ch_multiqc_config.toList(),
-        ch_multiqc_custom_config.toList(),
-        ch_multiqc_logo.toList(),
-        [],
-        []
-    )
-
-    //
-    // Module: STAR_ALIGN
-    
     ch_fasta = Channel.of( [ [ id: "${params.igenomes_reference}" ], [params.genomes[params.igenomes_reference].fasta] ] )
     ch_gtf = Channel.of( [ [ id: "${params.igenomes_reference}" ], [params.genomes[params.igenomes_reference].gtf] ] )
 
@@ -191,6 +81,7 @@ workflow RNASEQPIPELINE {
         ch_gtf
     )
 
+    ch_versions = ch_versions.mix(STAR_GENOMEGENERATE.out.versions.first())
 
     STAR_ALIGN (
         ch_samplesheet_trimmed,
@@ -201,6 +92,8 @@ workflow RNASEQPIPELINE {
         []
     )
 
+    ch_versions = ch_versions.mix(STAR_ALIGN.out.versions.first())
+
     //
     // Module: SAMTOOLS sort, index, stats
     //
@@ -210,12 +103,16 @@ workflow RNASEQPIPELINE {
             []
         )
 
+    ch_versions = ch_versions.mix(SAMTOOLS_SORT.out.versions.first())
+
     SAMTOOLS_SORT.out.bam
         .set { ch_bam }
-    
+
     SAMTOOLS_INDEX (
         ch_bam
     )
+
+    ch_versions = ch_versions.mix(SAMTOOLS_INDEX.out.versions.first())
 
     ch_bam
         .join(SAMTOOLS_INDEX.out.bai, by: [0], remainder: true)
@@ -235,10 +132,12 @@ workflow RNASEQPIPELINE {
         ch_fasta.collect()
     )
 
+    ch_versions = ch_versions.mix(SAMTOOLS_STATS.out.versions.first())
+    ch_multiqc_files = ch_multiqc_files.mix(SAMTOOLS_STATS.out.stats.collect{it[1]})
+
     //
     // Module: PICARD markduplicates
     //
-
 
     // Local Module IndexFasta: create reference .fai index file
     INDEXFASTA ( ch_fasta )
@@ -250,15 +149,20 @@ workflow RNASEQPIPELINE {
         ch_fai.collect()
     )
 
+    ch_versions = ch_versions.mix(PICARD_MARKDUPLICATES.out.versions.first())
+    ch_multiqc_files = ch_multiqc_files.mix(PICARD_MARKDUPLICATES.out.metrics.collect{it[1]})
+
     //
     // Module: StringTie
     //
-    gtf_channel = Channel.of(params.genomes[params.igenomes_reference].gtf)
+    // gtf_channel = Channel.of(params.genomes[params.igenomes_reference].gtf)
 
     STRINGTIE_STRINGTIE (
         PICARD_MARKDUPLICATES.out.bam,
-        gtf_channel.collect()
+        ch_gtf.map { meta, gtf -> gtf}.collect()
     )
+
+    ch_versions = ch_versions.mix(STRINGTIE_STRINGTIE.out.versions.first())
 
     //
     // Module: AGGREGATESTRINGTIE - Remove duplicate gene entries
@@ -267,19 +171,75 @@ workflow RNASEQPIPELINE {
         STRINGTIE_STRINGTIE.out.abundance
     )
 
+    ch_versions = ch_versions.mix(AGGREGATESTRINGTIE.out.versions.first())
+
     //
-    // Module: MERGESTRINGTIE
+    // Module: AGGREGATESTRINGTIE & MERGESTRINGTIE
     //
     AGGREGATESTRINGTIE.out.abundance.map{meta, f -> f}.collect().set {merge_in}
     
     MERGESTRINGTIE ( merge_in )
-
     MERGESTRINGTIE.out.tsv.view { it -> "TPM table exported to $it" }
 
+    ch_versions = ch_versions.mix(MERGESTRINGTIE.out.versions.first())
 
+    ///////////////////////////////////
+    ///////////////////////////////////
+
+
+    //
+    // Collate and save software versions
+    //
+    softwareVersionsToYAML(ch_versions)
+        .collectFile(
+            storeDir: "${params.outdir}/pipeline_info",
+            name: 'nf_core_'  +  'rnaseqpipeline_software_'  + 'mqc_'  + 'versions.yml',
+            sort: true,
+            newLine: true
+        ).set { ch_collated_versions }
+
+    // 
+    // MODULE: MultiQC
+    //
+    ch_multiqc_config        = Channel.fromPath(
+        "$projectDir/assets/multiqc_config.yml", checkIfExists: true)
+    ch_multiqc_custom_config = params.multiqc_config ?
+        Channel.fromPath(params.multiqc_config, checkIfExists: true) :
+        Channel.empty()
+    ch_multiqc_logo          = params.multiqc_logo ?
+        Channel.fromPath(params.multiqc_logo, checkIfExists: true) :
+        Channel.empty()
+
+    summary_params      = paramsSummaryMap(
+        workflow, parameters_schema: "nextflow_schema.json")
+    ch_workflow_summary = Channel.value(paramsSummaryMultiqc(summary_params))
+    ch_multiqc_files = ch_multiqc_files.mix(
+        ch_workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml'))
+    ch_multiqc_custom_methods_description = params.multiqc_methods_description ?
+        file(params.multiqc_methods_description, checkIfExists: true) :
+        file("$projectDir/assets/methods_description_template.yml", checkIfExists: true)
+    ch_methods_description                = Channel.value(
+        methodsDescriptionText(ch_multiqc_custom_methods_description))
+
+    ch_multiqc_files = ch_multiqc_files.mix(ch_collated_versions)
+    ch_multiqc_files = ch_multiqc_files.mix(
+        ch_methods_description.collectFile(
+            name: 'methods_description_mqc.yaml',
+            sort: true
+        )
+    )
+
+    MULTIQC (
+    ch_multiqc_files.collect(),
+    ch_multiqc_config.toList(),
+    ch_multiqc_custom_config.toList(),
+    ch_multiqc_logo.toList(),
+    [],
+    []
+)
 
     emit:
-        multiqc_report = MULTIQC_TRIMMED.out.report.toList() // channel: /path/to/multiqc_report.html
+        multiqc_report = MULTIQC.out.report.toList() // channel: /path/to/multiqc_report.html
         versions       = ch_versions                 // channel: [ path(versions.yml) ]
 
 }
