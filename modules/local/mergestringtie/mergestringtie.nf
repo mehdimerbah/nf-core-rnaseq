@@ -12,7 +12,7 @@ conda "${moduleDir}/environment.yml"
 
     output:
     path "*.tsv", emit: tsv
-    // path tsv, emit: tsv
+    path "versions.yml"                      , emit: versions
 
     when:
     task.ext.when == null || task.ext.when
@@ -20,7 +20,7 @@ conda "${moduleDir}/environment.yml"
     script:
     def args = task.ext.args ?: ''
     """
-    #!/usr/bin/env python3
+python3 - <<EOF
 
 import pandas as pd
 import os
@@ -63,5 +63,12 @@ print(f"Sample columns: {sample_columns}")
 # Save result
 output_file = "${params.genetable_outfile}.tsv"
 merged_df.to_csv(output_file, sep="\t", index=False)
+EOF
+
+cat <<-END_VERSIONS > versions.yml
+"${task.process}":
+    python: \$(python --version | sed 's/Python //g')
+    pandas: \$(python -c "import pandas; print(pandas.__version__)")
+END_VERSIONS
     """
 }

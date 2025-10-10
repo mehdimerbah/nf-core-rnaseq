@@ -78,10 +78,10 @@ duplicates_removed = aggregate_stringtie_genes("${abundance}", "${prefix}.gene.a
 print(f"Successfully aggregated ${abundance}, removed {duplicates_removed} duplicate entries")
 EOF
 
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        python: \$(python --version | sed 's/Python //g')
-        pandas: \$(python -c "import pandas; print(pandas.__version__)")
-    END_VERSIONS
+cat <<-END_VERSIONS > versions.yml
+"${task.process}":
+    python: \$(python --version | sed 's/Python //g')
+    pandas: \$(python -c "import pandas; print(pandas.__version__)")
+END_VERSIONS
     """
 }
