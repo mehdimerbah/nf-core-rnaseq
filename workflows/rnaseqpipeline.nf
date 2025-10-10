@@ -15,6 +15,7 @@ include { SAMTOOLS_STATS         } from '../modules/nf-core/samtools/stats/main'
 include { INDEXFASTA             } from '../modules/local/indexfasta.nf'
 include { PICARD_MARKDUPLICATES  } from '../modules/nf-core/picard/markduplicates/main'
 include { STRINGTIE_STRINGTIE    } from '../modules/nf-core/stringtie/stringtie/main'  
+include { MERGESTRINGTIE             } from '../modules/local/mergestringtie.nf'
 include { paramsSummaryMap       } from 'plugin/nf-schema'
 include { paramsSummaryMultiqc   } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
@@ -257,6 +258,17 @@ workflow RNASEQPIPELINE {
         PICARD_MARKDUPLICATES.out.bam,
         gtf_channel.collect()
     )
+
+
+    //
+    // Module: MERGESTRINGTIE
+    //
+    STRINGTIE_STRINGTIE.out.abundance.map{meta, f -> f}.collect().set {merge_in}
+    
+    MERGESTRINGTIE ( merge_in )
+
+    MERGESTRINGTIE.out.tsv.view { it -> "TPM table exported to $it" }
+
 
 
     emit:
