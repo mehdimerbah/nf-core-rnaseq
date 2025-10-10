@@ -181,8 +181,8 @@ workflow RNASEQPIPELINE {
     //
     // Module: STAR_ALIGN
     
-    ch_fasta = Channel.of( [ [ id: "${params.igenomes_reference}" ], [params.genomes."${params.igenomes_reference}".fasta] ] )
-    ch_gtf = Channel.of( [ [ id: "${params.igenomes_reference}" ], [params.genomes."${params.igenomes_reference}".gtf] ] )
+    ch_fasta = Channel.of( [ [ id: "${params.igenomes_reference}" ], [params.genomes[params.igenomes_reference].fasta] ] )
+    ch_gtf = Channel.of( [ [ id: "${params.igenomes_reference}" ], [params.genomes[params.igenomes_reference].gtf] ] )
 
     STAR_GENOMEGENERATE (
         ch_fasta,
@@ -251,7 +251,7 @@ workflow RNASEQPIPELINE {
     //
     // Module: StringTie
     //
-    gtf_channel = Channel.of(params.genomes."${params.igenomes_reference}".gtf)
+    gtf_channel = Channel.of(params.genomes[params.igenomes_reference].gtf)
 
     STRINGTIE_STRINGTIE (
         PICARD_MARKDUPLICATES.out.bam,
