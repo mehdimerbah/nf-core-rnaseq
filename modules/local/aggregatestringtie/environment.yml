@@ -1,7 +1,8 @@
-name: indexfasta
+name: aggregatestringtie
 channels:
   - conda-forge
   - bioconda
   - defaults
 dependencies:
-  - bioconda::samtools=1.22.1
+  - python=3.13
+  - pandas=2.3.3
