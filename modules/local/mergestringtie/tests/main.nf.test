@@ -1,0 +1,22 @@
+// nf-test for mergestringtie local module
+
+include { MERGESTRINGTIE } from '../mergestringtie.nf'
+
+def input1 = file('sample1.gene.abundance.aggregated.txt')
+def input2 = file('sample2.gene.abundance.aggregated.txt')
+def expected_output = file('expected_gene_table.tsv')
+
+test "mergestringtie merges two samples correctly" {
+    // Provide minimal test input files
+    input1.text = """Gene ID\tGene Name\tReference\tStrand\tStart\tEnd\tCoverage\tFPKM\tTPM\ngeneA\tGeneA\tchr1\t+\t100\t200\t5\t10\t20\ngeneB\tGeneB\tchr2\t-\t300\t400\t0\t0\t0\n"""
+    input2.text = """Gene ID\tGene Name\tReference\tStrand\tStart\tEnd\tCoverage\tFPKM\tTPM\ngeneA\tGeneA\tchr1\t+\t100\t200\t3\t6\t12\ngeneB\tGeneB\tchr2\t-\t300\t400\t2\t4\t8\n"""
+    
+    // Expected output: merged TPM table
+    expected_output.text = """gene_id\tgene_name\tsample1\tsample2\ngeneA\tGeneA\t20\t12\ngeneB\tGeneB\t0\t8\n"""
+
+    MERGESTRINGTIE(infiles: [input1, input2])
+    
+    // Check output
+    def result = file('gene_table_TPM.tsv')
+    result.text == expected_output.text
+}
