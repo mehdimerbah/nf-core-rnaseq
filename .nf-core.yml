@@ -9,9 +9,9 @@ template:
   name: rnaseqpipeline
   description: A test pipeline for RNAseq
   author: Nicolai Oswald, Mehdi Merbah
-  version: 1.0.0dev
+  version: '1.1'
   force: true
   outdir: .
   skip_features:
-    - gpu
+  - gpu
   is_nfcore: true
