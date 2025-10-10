@@ -29,7 +29,6 @@ def aggregate_stringtie_genes(input_file, output_file):
     # Read the StringTie gene abundance file
     df = pd.read_csv(input_file, sep='\\t')
     
-    print(f"Processing {input_file}: {len(df)} rows")
     
     # Check for duplicates
     duplicates = df['Gene ID'].duplicated(keep=False)
