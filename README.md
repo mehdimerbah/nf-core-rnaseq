@@ -1,10 +1,3 @@
-<!-- <h1>
-  <picture>
-    <source media="(prefers-color-scheme: light)" srcset="docs/images/nf-core-rnaseqpipeline_logo_light.png">
-    <img alt="nf-core/rnaseqpipeline" src="docs/images/nf-core-rnaseqpipeline_logo_light.png">
-  </picture>
-</h1> -->
-
 ![nf-core/rnaseqpipeline logo](docs/images/nf-core-rnaseqpipeline_logo_light.png)
 
 [![Nextflow](https://img.shields.io/badge/version-%E2%89%A524.10.5-green?style=flat&logo=nextflow&logoColor=white&color=%230DC09D&link=https%3A%2F%2Fnextflow.io)](https://www.nextflow.io/)
@@ -40,7 +33,7 @@ The pipeline is built using [Nextflow](https://www.nextflow.io/) and adheres to 
 ## Usage
 
 > [!NOTE]
-> If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/usage/installation) on how to set-up Nextflow. Make sure to [test your setup](https://nf-co.re/docs/usage/introduction#how-to-run-a-pipeline) with `-profile test_EB1` before running the workflow on actual data.
+> If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/usage/installation) on how to set up Nextflow. Make sure to [test your setup](https://nf-co.re/docs/usage/introduction#how-to-run-a-pipeline) with `-profile test_EB1` before running the workflow on actual data.
 >
 > ```nextflow run main.nf -profile test_EB1,<docker/apptainer/conda>```
 
@@ -55,13 +48,13 @@ SRR23195511,SRR23195511_1_sub500.fastq.gz,SRR23195511_2_sub500.fastq.gz,control,
 SRR23195516,SRR23195516_1_sub500.fastq.gz,SRR23195516_2_sub500.fastq.gz,treatment,auto
 ```
 
-Each row represents a fastq file (single-end) or a pair of fastq files (paired end).
+Each row represents a FASTQ file (single-end) or a pair of FASTQ files (paired end).
 
 | Column        | Description                                                                                   |
 |---------------|-----------------------------------------------------------------------------------------------|
 | sample        | Custom sample name                                                                            |
-| fastq_1       | Full path to gzipped FastQ file for Illumina short reads 1.                                   |
-| fastq_2       | Full path to gzipped FastQ file for Illumina short reads 2. Empty for single-end sequencing   |
+| fastq_1       | Full path to gzipped FASTQ file for Illumina short reads 1.                                   |
+| fastq_2       | Full path to gzipped FASTQ file for Illumina short reads 2. Empty for single-end sequencing   |
 | condition     | Custom condition name for downstream analysis                                                 |
 | strandedness  | Sample strand-specificity. Must be one of `unstranded`, `forward`, `reverse` or `auto`.       |
 
@@ -92,16 +85,16 @@ The pipeline can be run with additional pipeline parameters via the CLI or the N
 
 - `--fastqc_threads`: FastQC option. Specifies number of threads used for running FastQC. Default: `32`.
 
-- `trimgalore_min_length`: TrimGalore option. Reads that became shorter than a defined length are discarded. Default: `20`.
+- `--trimgalore_min_length`: TrimGalore option. Reads that become shorter than a defined length are discarded. Default: `20`.
 
-- `--trimgalore_min_qual`: TrimGalore option. Phred score threashold for trimming low-quality ends from reads. Default: `20`.
+- `--trimgalore_min_qual`: TrimGalore option. Minimum Phred score for trimming low-quality ends from reads. Default: `20`.
 
-- `--genetable_outfile`: File name for the output gene table reporting TPMs over samples and genes. Default: `gene_table_TPM`
+- `--genetable_outfile`: Filename for the output gene table reporting TPMs over samples and genes. Default: `gene_table_TPM`
 
 
 ## Pipeline output
 
-The pipeline outputs a gene count table reporting the TPMs per sample and gene. The file is located in the ```<OUTDIR>/gene_table``` directory. The pipeline also creates an exhaustive MultiQC report summarizing quality control over all pipeline steps. The report can be found in ```<OUTDIR>/multiqc```.
+The pipeline outputs a gene count table reporting the TPMs per sample and gene. The file is located in the ```<OUTDIR>/gene_table``` directory. The pipeline also creates a comprehensive MultiQC report summarizing quality control over all pipeline steps. The report can be found in ```<OUTDIR>/multiqc```.
 
 
 ## Credits
