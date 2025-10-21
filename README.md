@@ -1,73 +1,99 @@
-<h1>
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/images/nf-core-rnaseqpipeline_logo_dark.png">
-    <img alt="nf-core/rnaseqpipeline" src="docs/images/nf-core-rnaseqpipeline_logo_dark.png">
-  </picture>
-</h1>
-
-
-[![AWS CI](https://img.shields.io/badge/CI%20tests-full%20size-FF9900?labelColor=000000&logo=Amazon%20AWS)](https://nf-co.re/rnaseqpipeline/results)[![Cite with Zenodo](http://img.shields.io/badge/DOI-10.5281/zenodo.XXXXXXX-1073c8?labelColor=000000)](https://doi.org/10.5281/zenodo.XXXXXXX)
-[![nf-test](https://img.shields.io/badge/unit_tests-nf--test-337ab7.svg)](https://www.nf-test.com)
+![nf-core/rnaseqpipeline logo](docs/images/nf-core-rnaseqpipeline_logo_light.png)
 
 [![Nextflow](https://img.shields.io/badge/version-%E2%89%A524.10.5-green?style=flat&logo=nextflow&logoColor=white&color=%230DC09D&link=https%3A%2F%2Fnextflow.io)](https://www.nextflow.io/)
 [![nf-core template version](https://img.shields.io/badge/nf--core_template-3.3.2-green?style=flat&logo=nfcore&logoColor=white&color=%2324B064&link=https%3A%2F%2Fnf-co.re)](https://github.com/nf-core/tools/releases/tag/3.3.2)
+
 [![run with conda](http://img.shields.io/badge/run%20with-conda-3EB049?labelColor=000000&logo=anaconda)](https://docs.conda.io/en/latest/)
 [![run with docker](https://img.shields.io/badge/run%20with-docker-0db7ed?labelColor=000000&logo=docker)](https://www.docker.com/)
 [![run with singularity](https://img.shields.io/badge/run%20with-singularity-1d355c.svg?labelColor=000000)](https://sylabs.io/docs/)
-[![Launch on Seqera Platform](https://img.shields.io/badge/Launch%20%F0%9F%9A%80-Seqera%20Platform-%234256e7)](https://cloud.seqera.io/launch?pipeline=https://github.com/nf-core/rnaseqpipeline)
 
-[![Get help on Slack](http://img.shields.io/badge/slack-nf--core%20%23rnaseqpipeline-4A154B?labelColor=000000&logo=slack)](https://nfcore.slack.com/channels/rnaseqpipeline)[![Follow on Bluesky](https://img.shields.io/badge/bluesky-%40nf__core-1185fe?labelColor=000000&logo=bluesky)](https://bsky.app/profile/nf-co.re)[![Follow on Mastodon](https://img.shields.io/badge/mastodon-nf__core-6364ff?labelColor=FFFFFF&logo=mastodon)](https://mstdn.science/@nf_core)[![Watch on YouTube](http://img.shields.io/badge/youtube-nf--core-FF0000?labelColor=000000&logo=youtube)](https://www.youtube.com/c/nf-core)
 
 ## Introduction
 
 **nf-core/rnaseqpipeline** is a bioinformatics pipeline that performs RNA-Seq data analysis, from raw sequencing reads to gene expression quantification.
 
-The pipeline ingests raw sequencing data in FASTQ format and processes it through several key steps, including quality control, read alignment, and transcript quantification. The final output includes gene expression counts and quality reports.
+![nf-core/rnaseq metro map](docs/images/nf-core-rnaseq_grouped.drawio.png)
+
+
+The pipeline ingests raw sequencing data in FASTQ format and processes it through several key steps, including quality control, read alignment, and transcript quantification. The final output includes gene expression TPMs and quality reports.
+
+1. Read QC (FastQC)
+1. Adapter and quality trimming (Trim Galore!)
+1. Read QC (FastQC)
+1. Alignment (STAR)
+1. Sort and index alignments (SAMtools)
+1. Duplicate read marking (picard MarkDuplicates)
+1. Transcript assembly and quantification (StringTie)
+1. Post-processing (aggregating and merging tables)
+1. QC (MultiQC)
 
 The pipeline is built using [Nextflow](https://www.nextflow.io/) and adheres to the [nf-core](https://nf-co.re/) community guidelines, ensuring high standards of reproducibility, scalability, and portability across different computing environments.
+
 
 ## Usage
 
 > [!NOTE]
-> If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/usage/installation) on how to set-up Nextflow. Make sure to [test your setup](https://nf-co.re/docs/usage/introduction#how-to-run-a-pipeline) with `-profile test` before running the workflow on actual data.
+> If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/usage/installation) on how to set up Nextflow. Make sure to [test your setup](https://nf-co.re/docs/usage/introduction#how-to-run-a-pipeline) with `-profile test_EB1` before running the workflow on actual data.
+>
+> ```nextflow run main.nf -profile test_EB1,<docker/apptainer/conda>```
 
-<!-- TODO nf-core: Describe the minimum required steps to execute the pipeline, e.g. how to prepare samplesheets.
-     Explain what rows and columns represent. For instance (please edit as appropriate):
 
 First, prepare a samplesheet with your input data that looks as follows:
 
 `samplesheet.csv`:
 
 ```csv
-sample,fastq_1,fastq_2
-CONTROL_REP1,AEG588A1_S1_L002_R1_001.fastq.gz,AEG588A1_S1_L002_R2_001.fastq.gz
+sample,fastq_1,fastq_2,condition,strandedness
+SRR23195511,SRR23195511_1_sub500.fastq.gz,SRR23195511_2_sub500.fastq.gz,control,auto
+SRR23195516,SRR23195516_1_sub500.fastq.gz,SRR23195516_2_sub500.fastq.gz,treatment,auto
 ```
 
-Each row represents a fastq file (single-end) or a pair of fastq files (paired end).
+Each row represents a FASTQ file (single-end) or a pair of FASTQ files (paired end).
 
--->
+| Column        | Description                                                                                   |
+|---------------|-----------------------------------------------------------------------------------------------|
+| sample        | Custom sample name                                                                            |
+| fastq_1       | Full path to gzipped FASTQ file for Illumina short reads 1.                                   |
+| fastq_2       | Full path to gzipped FASTQ file for Illumina short reads 2. Empty for single-end sequencing   |
+| condition     | Custom condition name for downstream analysis                                                 |
+| strandedness  | Sample strand-specificity. Must be one of `unstranded`, `forward`, `reverse` or `auto`.       |
+
 
 Now, you can run the pipeline using:
 
 <!-- TODO nf-core: update the following command to include all required parameters for a minimal example -->
 
 ```bash
-nextflow run nf-core/rnaseqpipeline \
-   -profile <docker/singularity/.../institute> \
+nextflow run main.nf \
+   -profile <docker/apptainer/conda> \
    --input samplesheet.csv \
    --outdir <OUTDIR>
 ```
 
+
 > [!WARNING]
 > Please provide pipeline parameters via the CLI or Nextflow `-params-file` option. Custom config files including those provided by the `-c` Nextflow option can be used to provide any configuration _**except for parameters**_; see [docs](https://nf-co.re/docs/usage/getting_started/configuration#custom-configuration-files).
 
-For more details and further functionality, please refer to the [usage documentation](https://nf-co.re/rnaseqpipeline/usage) and the [parameter documentation](https://nf-co.re/rnaseqpipeline/parameters).
+
+## Pipeline parameters
+
+The pipeline can be run with additional pipeline parameters via the CLI or the Nextflow `-params-file`.
+
+- `--igenomes_reference`: specify reference genome for the sample. A list of possible options is provided in the `conf/igenomes.config` file. Default: `GRCm38`.
+
+- `--fastqc_threads`: FastQC option. Specifies number of threads used for running FastQC. Default: `32`.
+
+- `--trimgalore_min_length`: TrimGalore option. Reads that become shorter than a defined length are discarded. Default: `20`.
+
+- `--trimgalore_min_qual`: TrimGalore option. Minimum Phred score for trimming low-quality ends from reads. Default: `20`.
+
+- `--genetable_outfile`: Filename for the output gene table reporting TPMs over samples and genes. Default: `gene_table_TPM`
+
 
 ## Pipeline output
 
-To see the results of an example test run with a full size dataset refer to the [results](https://nf-co.re/rnaseqpipeline/results) tab on the nf-core website pipeline page.
-For more details about the output files and reports, please refer to the
-[output documentation](https://nf-co.re/rnaseqpipeline/output).
+The pipeline outputs a gene count table reporting the TPMs per sample and gene. The file is located in the ```<OUTDIR>/gene_table``` directory. The pipeline also creates a comprehensive MultiQC report summarizing quality control over all pipeline steps. The report can be found in ```<OUTDIR>/multiqc```.
+
 
 ## Credits
 
@@ -75,11 +101,13 @@ nf-core/rnaseqpipeline was originally written by Mehdi Merbah and Nicolai Oswald
 
 We thank the nf-core community for their continuous support and contributions to the nf-core project and giving us a basis and the resources for developing this pipeline.
 
+
 ## Contributions and Support
 
 If you would like to contribute to this pipeline, please see the [contributing guidelines](.github/CONTRIBUTING.md).
 
 For further information or help, don't hesitate to get in touch on the [Slack `#rnaseqpipeline` channel](https://nfcore.slack.com/channels/rnaseqpipeline) (you can join with [this invite](https://nf-co.re/join/slack)).
+
 
 ## Citations
 
