@@ -6,10 +6,10 @@ def test_input = file('test_input.txt')
 def expected_output = file('expected_aggregated.txt')
 
 test "aggregatestringtie aggregates duplicates correctly" {
-    // Provide a minimal test input file with duplicate gene rows
+    // a minimal test input file with duplicate gene rows
     test_input.text = """Gene ID\tGene Name\tReference\tStrand\tStart\tEnd\tCoverage\tFPKM\tTPM\ngeneA\tGeneA\tchr1\t+\t100\t200\t0\t0\t0\ngeneA\tGeneA\tchr1\t+\t100\t200\t5\t10\t20\ngeneB\tGeneB\tchr2\t-\t300\t400\t0\t0\t0\n"""
-    
-    // Expected output: only one row for geneA, with first non-zero values
+
+    // The expected output here is only one row for geneA, with first non-zero values
     expected_output.text = """Gene ID\tGene Name\tReference\tStrand\tStart\tEnd\tCoverage\tFPKM\tTPM\ngeneA\tGeneA\tchr1\t+\t100\t200\t5\t10\t20\ngeneB\tGeneB\tchr2\t-\t300\t400\t0\t0\t0\n"""
 
     AGGREGATESTRINGTIE(meta: [id: 'test'], abundance: test_input)
