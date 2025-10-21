@@ -66,8 +66,11 @@ def aggregate_stringtie_genes(input_file, output_file):
     # Reorder columns to match original
     aggregated = aggregated[['Gene ID', 'Gene Name', 'Reference', 'Strand', 'Start', 'End', 'Coverage', 'FPKM', 'TPM']]
     
-    print(f"After aggregation: {len(aggregated)} rows")
+    # Drop rows where gene_id contains 'STRG'
+    aggregated = aggregated[~aggregated['Gene ID'].str.contains("STRG")]
     
+    print(f"After aggregation: {len(aggregated)} rows")
+
     # Save aggregated results
     aggregated.to_csv(output_file, sep='\\t', index=False)
     
