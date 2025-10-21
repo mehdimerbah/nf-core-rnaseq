@@ -64,7 +64,7 @@ Now, you can run the pipeline using:
 <!-- TODO nf-core: update the following command to include all required parameters for a minimal example -->
 
 ```bash
-nextflow run nf-core/rnaseqpipeline \
+nextflow run main.nf \
    -profile <docker/apptainer/conda> \
    --input samplesheet.csv \
    --outdir <OUTDIR>
@@ -73,8 +73,6 @@ nextflow run nf-core/rnaseqpipeline \
 
 > [!WARNING]
 > Please provide pipeline parameters via the CLI or Nextflow `-params-file` option. Custom config files including those provided by the `-c` Nextflow option can be used to provide any configuration _**except for parameters**_; see [docs](https://nf-co.re/docs/usage/getting_started/configuration#custom-configuration-files).
-
-For more details and further functionality, please refer to the [usage documentation](https://nf-co.re/rnaseqpipeline/usage) and the [parameter documentation](https://nf-co.re/rnaseqpipeline/parameters).
 
 
 ## Pipeline parameters
