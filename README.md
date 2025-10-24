@@ -33,7 +33,7 @@ The pipeline is built using [Nextflow](https://www.nextflow.io/) and adheres to 
 ## Usage
 
 > [!NOTE]
-> If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/usage/installation) on how to set up Nextflow. Make sure to [test your setup](https://nf-co.re/docs/usage/introduction#how-to-run-a-pipeline) with `-profile test_EB1` before running the workflow on actual data.
+> Make sure to [test your setup](https://nf-co.re/docs/usage/introduction#how-to-run-a-pipeline), in order to test our pipeline simply use the `-profile test_EB1` before running the workflow on your data.
 >
 > ```nextflow run main.nf -profile test_EB1,<docker/apptainer/conda>```
 
