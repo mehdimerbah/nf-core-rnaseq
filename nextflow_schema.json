@@ -85,6 +85,28 @@
                     "default": "GRCm38",
                     "description": "Reference genome ID for iGenomes configuration.",
                     "fa_icon": "fas fa-book"
+                },
+                "aligner": {
+                    "type": "string",
+                    "default": "star",
+                    "enum": ["star", "bowtie2"],
+                    "description": "Alignment tool to use. Options: 'star' or 'bowtie2'.",
+                    "fa_icon": "fas fa-align-center",
+                    "help_text": "Choose which aligner to use for read alignment. STAR is recommended for RNA-seq with splice-aware alignment, while bowtie2 is faster for unspliced alignment."
+                },
+                "igv_sites": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Path to BED or VCF file with genomic regions for IGV reports visualization.",
+                    "fa_icon": "fas fa-map-marked-alt",
+                    "help_text": "Optional: Provide a BED or VCF file containing genomic regions of interest to generate IGV reports for visualization."
+                },
+                "igv_gff": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Path to GFF or GTF annotation file to display as a track in IGV reports.",
+                    "fa_icon": "fas fa-file-alt",
+                    "help_text": "Optional: Provide a GFF/GTF annotation file to display gene annotations alongside alignments in IGV reports."
                 }
             }
         },
