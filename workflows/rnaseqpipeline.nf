@@ -7,16 +7,19 @@ include { FASTQC as FASTQC; FASTQC as FASTQC_TRIMMED              } from '../mod
 include { MULTIQC as MULTIQC; MULTIQC as MULTIQC_TRIMMED        } from '../modules/nf-core/multiqc/main'               // MULTIQC // MULTIQC on trimmed reads
 include { TRIMGALORE             } from '../modules/nf-core/trimgalore/main'
 include { STAR_GENOMEGENERATE    } from '../modules/nf-core/star/genomegenerate/main'
-include { STAR_ALIGN             } from '../modules/nf-core/star/align/main'      
-include { SAMTOOLS_SORT          } from '../modules/nf-core/samtools/sort/main' 
-include { SAMTOOLS_INDEX         } from '../modules/nf-core/samtools/index/main'   
-include { SAMTOOLS_FAIDX         } from '../modules/nf-core/samtools/faidx/main'   
-include { SAMTOOLS_STATS         } from '../modules/nf-core/samtools/stats/main' 
+include { STAR_ALIGN             } from '../modules/nf-core/star/align/main'
+include { BOWTIE2_BUILD          } from '../modules/nf-core/bowtie2/build/main'
+include { BOWTIE2_ALIGN          } from '../modules/nf-core/bowtie2/align/main'
+include { SAMTOOLS_SORT          } from '../modules/nf-core/samtools/sort/main'
+include { SAMTOOLS_INDEX         } from '../modules/nf-core/samtools/index/main'
+include { SAMTOOLS_FAIDX         } from '../modules/nf-core/samtools/faidx/main'
+include { SAMTOOLS_STATS         } from '../modules/nf-core/samtools/stats/main'
 include { INDEXFASTA             } from '../modules/local/indexfasta/indexfasta.nf'
 include { PICARD_MARKDUPLICATES  } from '../modules/nf-core/picard/markduplicates/main'
-include { STRINGTIE_STRINGTIE    } from '../modules/nf-core/stringtie/stringtie/main'  
+include { STRINGTIE_STRINGTIE    } from '../modules/nf-core/stringtie/stringtie/main'
 include { AGGREGATESTRINGTIE     } from '../modules/local/aggregatestringtie/aggregatestringtie.nf'
 include { MERGESTRINGTIE         } from '../modules/local/mergestringtie/mergestringtie.nf'
+include { IGVREPORTS             } from '../modules/nf-core/igvreports/main'
 include { paramsSummaryMap       } from 'plugin/nf-schema'
 include { paramsSummaryMultiqc   } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
@@ -71,34 +74,59 @@ workflow RNASEQPIPELINE {
     ch_versions = ch_versions.mix(FASTQC_TRIMMED.out.versions.first())
 
     //
-    // Module: STAR_GENOMEGENERATE & STAR_ALIGN
+    // Module: STAR_GENOMEGENERATE & STAR_ALIGN or BOWTIE2_BUILD & BOWTIE2_ALIGN
     //
     ch_fasta = Channel.of( [ [ id: "${params.igenomes_reference}" ], [params.genomes[params.igenomes_reference].fasta] ] )
     ch_gtf = Channel.of( [ [ id: "${params.igenomes_reference}" ], [params.genomes[params.igenomes_reference].gtf] ] )
 
-    STAR_GENOMEGENERATE (
-        ch_fasta,
-        ch_gtf
-    )
+    // We could choose the alignment method based on params.aligner
+    if (params.aligner == 'star') {
+        STAR_GENOMEGENERATE (
+            ch_fasta,
+            ch_gtf
+        )
 
-    ch_versions = ch_versions.mix(STAR_GENOMEGENERATE.out.versions.first())
+        ch_versions = ch_versions.mix(STAR_GENOMEGENERATE.out.versions.first())
 
-    STAR_ALIGN (
-        ch_samplesheet_trimmed,
-        STAR_GENOMEGENERATE.out.index.collect(),
-        ch_gtf.collect(),
-        [],
-        [],
-        []
-    )
+        STAR_ALIGN (
+            ch_samplesheet_trimmed,
+            STAR_GENOMEGENERATE.out.index.collect(),
+            ch_gtf.collect(),
+            [],
+            [],
+            []
+        )
 
-    ch_versions = ch_versions.mix(STAR_ALIGN.out.versions.first())
+        ch_versions = ch_versions.mix(STAR_ALIGN.out.versions.first())
+        ch_alignment_bam = STAR_ALIGN.out.bam
+        ch_alignment_log = STAR_ALIGN.out.log_final
+
+    } else if (params.aligner == 'bowtie2') {
+        BOWTIE2_BUILD (
+            ch_fasta
+        )
+
+        ch_versions = ch_versions.mix(BOWTIE2_BUILD.out.versions.first())
+
+        BOWTIE2_ALIGN (
+            ch_samplesheet_trimmed,
+            BOWTIE2_BUILD.out.index.collect(),
+            ch_fasta.collect(),
+            false,  // This is to specify NOT saving unaligned reads
+            true    // sort_bam argment to specify outputing sorted BAM with .sorted prefix
+        )
+
+        ch_versions = ch_versions.mix(BOWTIE2_ALIGN.out.versions.first())
+        ch_alignment_bam = BOWTIE2_ALIGN.out.bam
+        ch_alignment_log = BOWTIE2_ALIGN.out.log
+        ch_multiqc_files = ch_multiqc_files.mix(BOWTIE2_ALIGN.out.log.collect{it[1]})
+    }
 
     //
     // Module: SAMTOOLS sort, index, stats
     //
     SAMTOOLS_SORT (
-            STAR_ALIGN.out.bam,
+            ch_alignment_bam,
             ch_fasta.collect(),
             []
         )
@@ -134,6 +162,18 @@ workflow RNASEQPIPELINE {
 
     ch_versions = ch_versions.mix(SAMTOOLS_STATS.out.versions.first())
     ch_multiqc_files = ch_multiqc_files.mix(SAMTOOLS_STATS.out.stats.collect{it[1]})
+
+    //
+    // Module: IGV Reports - Generate IGV visualization reports
+    //
+    // Prepare FASTA with index for IGV
+    SAMTOOLS_FAIDX (
+        ch_fasta,
+        [[], []],
+        false  // get_sizes
+    )
+
+    ch_versions = ch_versions.mix(SAMTOOLS_FAIDX.out.versions.first())
 
     //
     // Module: PICARD markduplicates
