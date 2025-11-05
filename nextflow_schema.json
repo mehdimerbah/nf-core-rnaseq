@@ -107,6 +107,13 @@
                     "description": "Path to GFF or GTF annotation file to display as a track in IGV reports.",
                     "fa_icon": "fas fa-file-alt",
                     "help_text": "Optional: Provide a GFF/GTF annotation file to display gene annotations alongside alignments in IGV reports."
+                },
+                "transcriptome": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Path to transcriptome FASTA file for alignment instead of genome.",
+                    "fa_icon": "fas fa-dna",
+                    "help_text": "Optional: Provide a transcriptome FASTA file to use for alignment instead of the genome reference. When specified, reads will be aligned to the transcriptome sequences."
                 }
             }
         },
