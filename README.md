@@ -20,7 +20,7 @@ The pipeline ingests raw sequencing data in FASTQ format and processes it throug
 1. Read QC (FastQC)
 1. Adapter and quality trimming (Trim Galore!)
 1. Read QC (FastQC)
-1. Alignment (STAR)
+1. Alignment (STAR or Bowtie2)
 1. Sort and index alignments (SAMtools)
 1. Duplicate read marking (picard MarkDuplicates)
 1. Transcript assembly and quantification (StringTie)
