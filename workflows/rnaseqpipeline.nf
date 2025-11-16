@@ -10,6 +10,9 @@ include { STAR_GENOMEGENERATE    } from '../modules/nf-core/star/genomegenerate/
 include { STAR_ALIGN             } from '../modules/nf-core/star/align/main'
 include { BOWTIE2_BUILD          } from '../modules/nf-core/bowtie2/build/main'
 include { BOWTIE2_ALIGN          } from '../modules/nf-core/bowtie2/align/main'
+include { HISAT2_EXTRACTSPLICESITES } from '../modules/nf-core/hisat2/extractsplicesites/main'
+include { HISAT2_BUILD           } from '../modules/nf-core/hisat2/build/main'
+include { HISAT2_ALIGN           } from '../modules/nf-core/hisat2/align/main'
 include { SAMTOOLS_SORT          } from '../modules/nf-core/samtools/sort/main'
 include { SAMTOOLS_INDEX         } from '../modules/nf-core/samtools/index/main'
 include { SAMTOOLS_FAIDX         } from '../modules/nf-core/samtools/faidx/main'
@@ -74,7 +77,7 @@ workflow RNASEQPIPELINE {
     ch_versions = ch_versions.mix(FASTQC_TRIMMED.out.versions.first())
 
     //
-    // Module: STAR_GENOMEGENERATE & STAR_ALIGN or BOWTIE2_BUILD & BOWTIE2_ALIGN
+    // Module: STAR_GENOMEGENERATE & STAR_ALIGN or BOWTIE2_BUILD & BOWTIE2_ALIGN or HISAT2_BUILD & HISAT2_ALIGN
     //
     ch_fasta = Channel.of( [ [ id: "${params.igenomes_reference}" ], [params.genomes[params.igenomes_reference].fasta] ] )
     ch_gtf = Channel.of( [ [ id: "${params.igenomes_reference}" ], [params.genomes[params.igenomes_reference].gtf] ] )
@@ -120,6 +123,32 @@ workflow RNASEQPIPELINE {
         ch_alignment_bam = BOWTIE2_ALIGN.out.bam
         ch_alignment_log = BOWTIE2_ALIGN.out.log
         ch_multiqc_files = ch_multiqc_files.mix(BOWTIE2_ALIGN.out.log.collect{it[1]})
+
+    } else if (params.aligner == 'hisat2') {
+        HISAT2_EXTRACTSPLICESITES (
+            ch_gtf
+        )
+
+        ch_versions = ch_versions.mix(HISAT2_EXTRACTSPLICESITES.out.versions.first())
+
+        HISAT2_BUILD (
+            ch_fasta,
+            ch_gtf,
+            HISAT2_EXTRACTSPLICESITES.out.txt
+        )
+
+        ch_versions = ch_versions.mix(HISAT2_BUILD.out.versions.first())
+
+        HISAT2_ALIGN (
+            ch_samplesheet_trimmed,
+            HISAT2_BUILD.out.index.collect(),
+            HISAT2_EXTRACTSPLICESITES.out.txt.map { meta, txt -> txt}.collect()
+        )
+
+        ch_versions = ch_versions.mix(HISAT2_ALIGN.out.versions.first())
+        ch_alignment_bam = HISAT2_ALIGN.out.bam
+        ch_alignment_log = HISAT2_ALIGN.out.summary
+        ch_multiqc_files = ch_multiqc_files.mix(HISAT2_ALIGN.out.summary.collect{it[1]})
     }
 
     //
