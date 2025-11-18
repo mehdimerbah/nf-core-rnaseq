@@ -48,11 +48,11 @@ workflow RNASEQPIPELINE {
     //
     // MODULE: Run FastQC
     //
-    FASTQC (
-        ch_samplesheet
-    )
-    ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
-    ch_versions = ch_versions.mix(FASTQC.out.versions.first())
+    // FASTQC (
+    //     ch_samplesheet
+    // )
+    // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
+    // ch_versions = ch_versions.mix(FASTQC.out.versions.first())
 
     //
     // Module: TRIMGALORE
@@ -70,17 +70,23 @@ workflow RNASEQPIPELINE {
     //
     // MODULE: Run FastQC on TRIMMED
     //
-    FASTQC_TRIMMED (
-        ch_samplesheet_trimmed
-    )
-    ch_multiqc_files = ch_multiqc_files.mix(FASTQC_TRIMMED.out.zip.collect{it[1]})
-    ch_versions = ch_versions.mix(FASTQC_TRIMMED.out.versions.first())
+    // FASTQC_TRIMMED (
+    //     ch_samplesheet_trimmed
+    // )
+    // ch_multiqc_files = ch_multiqc_files.mix(FASTQC_TRIMMED.out.zip.collect{it[1]})
+    // ch_versions = ch_versions.mix(FASTQC_TRIMMED.out.versions.first())
 
     //
     // Module: STAR_GENOMEGENERATE & STAR_ALIGN or BOWTIE2_BUILD & BOWTIE2_ALIGN or HISAT2_BUILD & HISAT2_ALIGN
     //
-    ch_fasta = Channel.of( [ [ id: "${params.igenomes_reference}" ], [params.genomes[params.igenomes_reference].fasta] ] )
-    ch_gtf = Channel.of( [ [ id: "${params.igenomes_reference}" ], [params.genomes[params.igenomes_reference].gtf] ] )
+    // Check if custom fasta/gtf paths are provided, otherwise use iGenomes
+    if (params.fasta && params.gtf) {
+        ch_fasta = Channel.of( [ [ id: "custom_genome" ], [file(params.fasta)] ] )
+        ch_gtf = Channel.of( [ [ id: "custom_genome" ], [file(params.gtf)] ] )
+    } else {
+        ch_fasta = Channel.of( [ [ id: "${params.igenomes_reference}" ], [params.genomes[params.igenomes_reference].fasta] ] )
+        ch_gtf = Channel.of( [ [ id: "${params.igenomes_reference}" ], [params.genomes[params.igenomes_reference].gtf] ] )
+    }
 
     // We could choose the alignment method based on params.aligner
     if (params.aligner == 'star') {
@@ -125,25 +131,38 @@ workflow RNASEQPIPELINE {
         ch_multiqc_files = ch_multiqc_files.mix(BOWTIE2_ALIGN.out.log.collect{it[1]})
 
     } else if (params.aligner == 'hisat2') {
-        HISAT2_EXTRACTSPLICESITES (
-            ch_gtf
-        )
+        // Use pre-built index if provided, otherwise build it
+        if (params.hisat2_index) {
+            // Using pre-built HISAT2 index
+            ch_hisat2_index = Channel.of([[id: 'hisat2_index'], file(params.hisat2_index).parent])
 
-        ch_versions = ch_versions.mix(HISAT2_EXTRACTSPLICESITES.out.versions.first())
+            HISAT2_ALIGN (
+                ch_samplesheet_trimmed,
+                ch_hisat2_index,
+                [[id: 'none'], []]  // Empty splice sites channel
+            )
+        } else {
+            // Build HISAT2 index from scratch
+            HISAT2_EXTRACTSPLICESITES (
+                ch_gtf
+            )
 
-        HISAT2_BUILD (
-            ch_fasta,
-            ch_gtf,
-            HISAT2_EXTRACTSPLICESITES.out.txt
-        )
+            ch_versions = ch_versions.mix(HISAT2_EXTRACTSPLICESITES.out.versions.first())
 
-        ch_versions = ch_versions.mix(HISAT2_BUILD.out.versions.first())
+            HISAT2_BUILD (
+                ch_fasta,
+                ch_gtf,
+                HISAT2_EXTRACTSPLICESITES.out.txt
+            )
 
-        HISAT2_ALIGN (
-            ch_samplesheet_trimmed,
-            HISAT2_BUILD.out.index.collect(),
-            HISAT2_EXTRACTSPLICESITES.out.txt.map { meta, txt -> txt}.collect()
-        )
+            ch_versions = ch_versions.mix(HISAT2_BUILD.out.versions.first())
+
+            HISAT2_ALIGN (
+                ch_samplesheet_trimmed,
+                HISAT2_BUILD.out.index.collect(),
+                HISAT2_EXTRACTSPLICESITES.out.txt.map { meta, txt -> txt}.collect()
+            )
+        }
 
         ch_versions = ch_versions.mix(HISAT2_ALIGN.out.versions.first())
         ch_alignment_bam = HISAT2_ALIGN.out.bam
@@ -192,65 +211,73 @@ workflow RNASEQPIPELINE {
     ch_versions = ch_versions.mix(SAMTOOLS_STATS.out.versions.first())
     ch_multiqc_files = ch_multiqc_files.mix(SAMTOOLS_STATS.out.stats.collect{it[1]})
 
-    //
-    // Module: IGV Reports - Generate IGV visualization reports
-    //
-    // Prepare FASTA with index for IGV
-    SAMTOOLS_FAIDX (
-        ch_fasta,
-        [[], []],
-        false  // get_sizes
-    )
+    // ========================================================================
+    // COMMENTED OUT FOR ALIGNER COMPARISON - NOT NEEDED FOR ALIGNMENT QC
+    // ========================================================================
 
-    ch_versions = ch_versions.mix(SAMTOOLS_FAIDX.out.versions.first())
+    // //
+    // // Module: IGV Reports - Generate IGV visualization reports
+    // //
+    // // Prepare FASTA with index for IGV
+    // SAMTOOLS_FAIDX (
+    //     ch_fasta,
+    //     [[], []],
+    //     false  // get_sizes
+    // )
 
-    //
-    // Module: PICARD markduplicates
-    //
+    // ch_versions = ch_versions.mix(SAMTOOLS_FAIDX.out.versions.first())
 
-    // Local Module IndexFasta: create reference .fai index file
-    INDEXFASTA ( ch_fasta )
-    INDEXFASTA.out.fai.set { ch_fai }
+    // //
+    // // Module: PICARD markduplicates
+    // //
 
-    PICARD_MARKDUPLICATES (
-        ch_bam,
-        ch_fasta.collect(),
-        ch_fai.collect()
-    )
+    // // Local Module IndexFasta: create reference .fai index file
+    // INDEXFASTA ( ch_fasta )
+    // INDEXFASTA.out.fai.set { ch_fai }
 
-    ch_versions = ch_versions.mix(PICARD_MARKDUPLICATES.out.versions.first())
-    ch_multiqc_files = ch_multiqc_files.mix(PICARD_MARKDUPLICATES.out.metrics.collect{it[1]})
+    // PICARD_MARKDUPLICATES (
+    //     ch_bam,
+    //     ch_fasta.collect(),
+    //     ch_fai.collect()
+    // )
 
-    //
-    // Module: StringTie
-    //
-    // gtf_channel = Channel.of(params.genomes[params.igenomes_reference].gtf)
+    // ch_versions = ch_versions.mix(PICARD_MARKDUPLICATES.out.versions.first())
+    // ch_multiqc_files = ch_multiqc_files.mix(PICARD_MARKDUPLICATES.out.metrics.collect{it[1]})
 
-    STRINGTIE_STRINGTIE (
-        PICARD_MARKDUPLICATES.out.bam,
-        ch_gtf.map { meta, gtf -> gtf}.collect()
-    )
+    // //
+    // // Module: StringTie
+    // //
+    // // gtf_channel = Channel.of(params.genomes[params.igenomes_reference].gtf)
 
-    ch_versions = ch_versions.mix(STRINGTIE_STRINGTIE.out.versions.first())
+    // STRINGTIE_STRINGTIE (
+    //     PICARD_MARKDUPLICATES.out.bam,
+    //     ch_gtf.map { meta, gtf -> gtf}.collect()
+    // )
 
-    //
-    // Module: AGGREGATESTRINGTIE - Remove duplicate gene entries
-    //
-    AGGREGATESTRINGTIE (
-        STRINGTIE_STRINGTIE.out.abundance
-    )
+    // ch_versions = ch_versions.mix(STRINGTIE_STRINGTIE.out.versions.first())
 
-    ch_versions = ch_versions.mix(AGGREGATESTRINGTIE.out.versions.first())
+    // //
+    // // Module: AGGREGATESTRINGTIE - Remove duplicate gene entries
+    // //
+    // AGGREGATESTRINGTIE (
+    //     STRINGTIE_STRINGTIE.out.abundance
+    // )
 
-    //
-    // Module: AGGREGATESTRINGTIE & MERGESTRINGTIE
-    //
-    AGGREGATESTRINGTIE.out.abundance.map{meta, f -> f}.collect().set {merge_in}
-    
-    MERGESTRINGTIE ( merge_in )
-    MERGESTRINGTIE.out.tsv.view { it -> "TPM table exported to $it" }
+    // ch_versions = ch_versions.mix(AGGREGATESTRINGTIE.out.versions.first())
 
-    ch_versions = ch_versions.mix(MERGESTRINGTIE.out.versions.first())
+    // //
+    // // Module: AGGREGATESTRINGTIE & MERGESTRINGTIE
+    // //
+    // AGGREGATESTRINGTIE.out.abundance.map{meta, f -> f}.collect().set {merge_in}
+
+    // MERGESTRINGTIE ( merge_in )
+    // MERGESTRINGTIE.out.tsv.view { it -> "TPM table exported to $it" }
+
+    // ch_versions = ch_versions.mix(MERGESTRINGTIE.out.versions.first())
+
+    // ========================================================================
+    // END OF COMMENTED SECTION
+    // ========================================================================
 
     ///////////////////////////////////
     ///////////////////////////////////
