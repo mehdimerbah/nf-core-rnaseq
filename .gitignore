@@ -10,3 +10,8 @@ null/
 fastq*/
 !fastqc/
 scripts*/
+hisat2_env/*
+qualimap_env*/
+qualimap_results*/
+mm_samples*/
+hisat2_index*/

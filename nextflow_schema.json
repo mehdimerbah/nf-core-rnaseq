@@ -89,10 +89,10 @@
                 "aligner": {
                     "type": "string",
                     "default": "star",
-                    "enum": ["star", "bowtie2"],
-                    "description": "Alignment tool to use. Options: 'star' or 'bowtie2'.",
+                    "enum": ["star", "bowtie2", "hisat2"],
+                    "description": "Alignment tool to use. Options: 'star', 'bowtie2', or 'hisat2'.",
                     "fa_icon": "fas fa-align-center",
-                    "help_text": "Choose which aligner to use for read alignment. STAR is recommended for RNA-seq with splice-aware alignment, while bowtie2 is faster for unspliced alignment."
+                    "help_text": "Choose which aligner to use for read alignment. STAR and HISAT2 are splice-aware aligners recommended for RNA-seq, while bowtie2 is a non-splice-aware aligner that is faster but may miss splice junctions."
                 },
                 "igv_sites": {
                     "type": "string",
