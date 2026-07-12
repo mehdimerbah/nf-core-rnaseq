@@ -1,0 +1,2 @@
+sample,fastq_1,fastq_2,condition,strandedness
+mapped,validation/small/mapped_1.fastq.gz,validation/small/mapped_2.fastq.gz,control,unstranded
