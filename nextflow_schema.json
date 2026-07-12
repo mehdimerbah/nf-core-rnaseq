@@ -1,7 +1,7 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://raw.githubusercontent.com/nf-core/rnaseqpipeline/master/nextflow_schema.json",
-    "title": "nf-core/rnaseqpipeline pipeline parameters",
+    "$id": "https://raw.githubusercontent.com/mehdimerbah/nextflow-rnaseq/master/nextflow_schema.json",
+    "title": "mehdimerbah/nextflow-rnaseq pipeline parameters",
     "description": "A test pipeline for RNAseq",
     "type": "object",
     "$defs": {
@@ -20,7 +20,7 @@
                     "mimetype": "text/csv",
                     "pattern": "^\\S+\\.csv$",
                     "description": "Path to comma-separated file containing information about the samples in the experiment.",
-                    "help_text": "You will need to create a design file with information about the samples in your experiment before running the pipeline. Use this parameter to specify its location. It has to be a comma-separated file with 3 columns, and a header row. See [usage docs](https://nf-co.re/rnaseqpipeline/usage#samplesheet-input).",
+                    "help_text": "Create a samplesheet with sample, fastq_1, fastq_2, condition, and strandedness columns. See [usage docs](https://github.com/mehdimerbah/nextflow-rnaseq).",
                     "fa_icon": "fas fa-file-csv"
                 },
                 "outdir": {
@@ -62,7 +62,7 @@
                     "mimetype": "text/plain",
                     "pattern": "^\\S+\\.fn?a(sta)?(\\.gz)?$",
                     "description": "Path to FASTA genome file.",
-                    "help_text": "This parameter is *mandatory* if `--genome` is not specified. If you don't have a BWA index available this will be generated for you automatically. Combine with `--save_reference` to save BWA index for future runs.",
+                    "help_text": "Provide this with `--gtf` for a custom reference. If omitted, the workflow resolves FASTA and GTF paths from `--genome` or `--igenomes_reference`.",
                     "fa_icon": "far fa-file-code"
                 },
                 "igenomes_ignore": {
@@ -85,20 +85,14 @@
                     "default": "GRCm38",
                     "description": "Reference genome ID for iGenomes configuration.",
                     "fa_icon": "fas fa-book"
-                }
-            }
-        },
-        "fastqc_options": {
-            "title": "FastQC options",
-            "type": "object",
-            "fa_icon": "fas fa-search",
-            "description": "Options for FastQC quality control analysis.",
-            "properties": {
-                "fastqc_threads": {
+                },
+                "aligner": {
                     "type": "string",
-                    "default": "32",
-                    "description": "Number of threads to use for FastQC analysis.",
-                    "fa_icon": "fas fa-microchip"
+                    "default": "star",
+                    "enum": ["star", "bowtie2", "hisat2"],
+                    "description": "Alignment tool to use. Options: 'star', 'bowtie2', or 'hisat2'.",
+                    "fa_icon": "fas fa-align-center",
+                    "help_text": "Choose which aligner to use for read alignment. STAR and HISAT2 are splice-aware aligners recommended for RNA-seq, while bowtie2 is a non-splice-aware aligner that is faster but may miss splice junctions."
                 }
             }
         },
@@ -142,31 +136,163 @@
                 }
             }
         },
-        "picard_options": {
-            "title": "Picard options",
+        "hisat2_options": {
+            "title": "HISAT2 aligner options",
             "type": "object",
-            "fa_icon": "fas fa-hammer",
-            "description": "Options for Picard tools.",
+            "fa_icon": "fas fa-align-left",
+            "description": "Options for HISAT2 RNA-seq alignment.",
             "properties": {
-                "picard_prefix": {
+                "hisat2_index": {
                     "type": "string",
-                    "default": "picard",
-                    "description": "Prefix for Picard output files.",
-                    "fa_icon": "fas fa-tag"
+                    "format": "directory-path",
+                    "description": "Path to a pre-built HISAT2 index directory.",
+                    "fa_icon": "fas fa-database",
+                    "help_text": "Provide a directory containing HISAT2 .ht2 index files to skip the index building step."
+                },
+                "hisat2_build_memory": {
+                    "type": "string",
+                    "default": "200.GB",
+                    "description": "Minimum memory threshold for using splice sites and exons when building a HISAT2 index.",
+                    "fa_icon": "fas fa-memory"
+                },
+                "save_unaligned": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Save unaligned reads to output.",
+                    "fa_icon": "fas fa-save"
+                },
+                "seq_center": {
+                    "type": "string",
+                    "description": "Sequencing center information to add to BAM header.",
+                    "fa_icon": "fas fa-building"
                 }
             }
         },
-        "mergestringtie_options": {
-            "title": "StringTie merge options",
+        "featurecounts_options": {
+            "title": "featureCounts options",
             "type": "object",
-            "fa_icon": "fas fa-compress",
-            "description": "Options for merging StringTie output.",
+            "fa_icon": "fas fa-calculator",
+            "description": "Options for featureCounts read quantification.",
             "properties": {
-                "genetable_outfile": {
+                "run_featurecounts": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Enable gene-level featureCounts read quantification.",
+                    "fa_icon": "fas fa-toggle-on"
+                },
+                "run_featurecounts_exon": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Also run feature-level exon counting with featureCounts.",
+                    "fa_icon": "fas fa-toggle-on"
+                },
+                "gtf": {
                     "type": "string",
-                    "default": "gene_table_TPM",
-                    "description": "Prefix for merged StringTie output files.",
+                    "format": "file-path",
+                    "description": "Path to GTF annotation file for aligner index generation and featureCounts.",
+                    "fa_icon": "fas fa-file-alt"
+                },
+                "fc_count_multimappers": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Count multi-mapping reads in featureCounts (use -M flag).",
+                    "fa_icon": "fas fa-layer-group",
+                    "help_text": "When enabled, featureCounts will count multi-mapping reads using the -M flag instead of --primary."
+                }
+            }
+        },
+        "deseq2_options": {
+            "title": "DESeq2 options",
+            "type": "object",
+            "fa_icon": "fas fa-chart-line",
+            "description": "Options for optional DESeq2 differential expression analysis.",
+            "properties": {
+                "run_deseq2": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Enable DESeq2 differential expression analysis.",
+                    "fa_icon": "fas fa-toggle-on"
+                },
+                "deseq2_samplesheet": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Path to the DESeq2 sample metadata CSV/TSV.",
+                    "fa_icon": "fas fa-file-csv"
+                },
+                "deseq2_counts": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Path to a count matrix suitable for DESeq2.",
+                    "fa_icon": "fas fa-table"
+                },
+                "deseq2_contrast_id": {
+                    "type": "string",
+                    "description": "Output prefix for the DESeq2 contrast.",
                     "fa_icon": "fas fa-tag"
+                },
+                "deseq2_contrast_variable": {
+                    "type": "string",
+                    "description": "Sample metadata column used for the DESeq2 contrast.",
+                    "fa_icon": "fas fa-columns"
+                },
+                "deseq2_reference": {
+                    "type": "string",
+                    "description": "Reference level for the DESeq2 contrast.",
+                    "fa_icon": "fas fa-arrow-left"
+                },
+                "deseq2_target": {
+                    "type": "string",
+                    "description": "Target level for the DESeq2 contrast.",
+                    "fa_icon": "fas fa-arrow-right"
+                },
+                "deseq2_gene_id_col": {
+                    "type": "string",
+                    "default": "gene_id",
+                    "description": "Gene identifier column in the DESeq2 count matrix.",
+                    "fa_icon": "fas fa-barcode"
+                },
+                "deseq2_sample_id_col": {
+                    "type": "string",
+                    "default": "experiment_accession",
+                    "description": "Sample identifier column in the DESeq2 sample metadata.",
+                    "fa_icon": "fas fa-id-card"
+                },
+                "deseq2_alpha": {
+                    "type": "number",
+                    "default": 0.05,
+                    "description": "Adjusted p-value threshold passed to DESeq2 results.",
+                    "fa_icon": "fas fa-percent"
+                },
+                "deseq2_lfc_threshold": {
+                    "type": "number",
+                    "default": 0,
+                    "description": "Log2 fold-change threshold passed to DESeq2 results.",
+                    "fa_icon": "fas fa-arrows-alt-h"
+                },
+                "deseq2_shrink_lfc": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Apply DESeq2 log2 fold-change shrinkage.",
+                    "fa_icon": "fas fa-compress-alt"
+                },
+                "deseq2_fit_type": {
+                    "type": "string",
+                    "default": "parametric",
+                    "enum": ["parametric", "local", "mean"],
+                    "description": "Dispersion fit type passed to DESeq2.",
+                    "fa_icon": "fas fa-chart-area"
+                },
+                "deseq2_vs_method": {
+                    "type": "string",
+                    "default": "vst",
+                    "description": "Variance-stabilizing output method: vst, rlog, or a comma-separated combination.",
+                    "fa_icon": "fas fa-wave-square"
+                },
+                "deseq2_vst_nsub": {
+                    "type": "integer",
+                    "default": 1000,
+                    "description": "Number of genes sampled by DESeq2 vst.",
+                    "fa_icon": "fas fa-random"
                 }
             }
         },
@@ -187,9 +313,8 @@
                 "custom_config_base": {
                     "type": "string",
                     "description": "Base directory for Institutional configs.",
-                    "default": "https://raw.githubusercontent.com/nf-core/configs/master",
                     "hidden": true,
-                    "help_text": "If you're running offline, Nextflow will not be able to fetch the institutional config files from the internet. If you don't need them, then this is not a problem. If you do need them, you should download the files from the repo and tell Nextflow where to find them with this parameter.",
+                    "help_text": "Set this only when you want to load nf-core institutional configs from a local or remote nf-core/configs checkout.",
                     "fa_icon": "fas fa-users-cog"
                 },
                 "config_profile_name": {
@@ -324,19 +449,19 @@
             "$ref": "#/$defs/reference_genome_options"
         },
         {
-            "$ref": "#/$defs/fastqc_options"
-        },
-        {
             "$ref": "#/$defs/trimgalore_options"
         },
         {
             "$ref": "#/$defs/star_options"
         },
         {
-            "$ref": "#/$defs/picard_options"
+            "$ref": "#/$defs/hisat2_options"
         },
         {
-            "$ref": "#/$defs/mergestringtie_options"
+            "$ref": "#/$defs/featurecounts_options"
+        },
+        {
+            "$ref": "#/$defs/deseq2_options"
         },
         {
             "$ref": "#/$defs/institutional_config_options"

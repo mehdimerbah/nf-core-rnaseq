@@ -1,11 +1,10 @@
 #!/usr/bin/env nextflow
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    nf-core/rnaseqpipeline
+    mehdimerbah/nextflow-rnaseq
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    Github : https://github.com/nf-core/rnaseqpipeline
-    Website: https://nf-co.re/rnaseqpipeline
-    Slack  : https://nfcore.slack.com/channels/rnaseqpipeline
+    Github : https://github.com/mehdimerbah/nextflow-rnaseq
+    Website: https://github.com/mehdimerbah/nextflow-rnaseq
 ----------------------------------------------------------------------------------------
 */
 
@@ -18,18 +17,6 @@
 include { RNASEQPIPELINE  } from './workflows/rnaseqpipeline'
 include { PIPELINE_INITIALISATION } from './subworkflows/local/utils_nfcore_rnaseqpipeline_pipeline'
 include { PIPELINE_COMPLETION     } from './subworkflows/local/utils_nfcore_rnaseqpipeline_pipeline'
-include { getGenomeAttribute      } from './subworkflows/local/utils_nfcore_rnaseqpipeline_pipeline'
-
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    GENOME PARAMETER VALUES
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
-
-// TODO nf-core: Remove this line if you don't need a FASTA file
-//   This is an example of how to use getGenomeAttribute() to fetch parameters
-//   from igenomes.config using `--genome`
-params.fasta = getGenomeAttribute('fasta')
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

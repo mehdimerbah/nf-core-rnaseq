@@ -1,16 +1,16 @@
-# nf-core/rnaseqpipeline: Usage
+# mehdimerbah/nextflow-rnaseq: Usage
 
-## :warning: Please read this documentation on the nf-core website: [https://nf-co.re/rnaseqpipeline/usage](https://nf-co.re/rnaseqpipeline/usage)
+## :warning: Please read this documentation on the nf-core website: [https://github.com/mehdimerbah/nextflow-rnaseq)
 
 > _Documentation of pipeline parameters is generated automatically from the pipeline schema and can no longer be found in markdown files._
 
 ## Introduction
 
-<!-- TODO nf-core: Add documentation about anything specific to running your pipeline. For general topics, please point to (and add to) the main nf-core website. -->
+This pipeline trims RNA-seq FASTQ files, aligns them with a selected aligner, runs shared SAMtools post-processing, and optionally runs featureCounts and DESeq2. Select the aligner with `--aligner star`, `--aligner hisat2`, or `--aligner bowtie2`.
 
 ## Samplesheet input
 
-You will need to create a samplesheet with information about the samples you would like to analyse before running the pipeline. Use this parameter to specify its location. It has to be a comma-separated file with 3 columns, and a header row as shown in the examples below.
+You will need to create a samplesheet with information about the samples you would like to analyse before running the pipeline. Use `--input` to specify its location. It has to be a comma-separated file with a header row as shown in the examples below.
 
 ```bash
 --input '[path to samplesheet file]'
@@ -18,37 +18,39 @@ You will need to create a samplesheet with information about the samples you wou
 
 ### Multiple runs of the same sample
 
-The `sample` identifiers have to be the same when you have re-sequenced the same sample more than once e.g. to increase sequencing depth. The pipeline will concatenate the raw reads before performing any downstream analysis. Below is an example for the same sample sequenced across 3 lanes:
+STAR accepts repeated rows for a sample and supplies every lane to the aligner. Bowtie2 and HISAT2 accept one FASTQ or FASTQ pair per sample; merge lanes before using those aligners. Duplicate sample IDs are rejected for Bowtie2 and HISAT2 so reads cannot be silently dropped.
 
 ```csv title="samplesheet.csv"
-sample,fastq_1,fastq_2
-CONTROL_REP1,AEG588A1_S1_L002_R1_001.fastq.gz,AEG588A1_S1_L002_R2_001.fastq.gz
-CONTROL_REP1,AEG588A1_S1_L003_R1_001.fastq.gz,AEG588A1_S1_L003_R2_001.fastq.gz
-CONTROL_REP1,AEG588A1_S1_L004_R1_001.fastq.gz,AEG588A1_S1_L004_R2_001.fastq.gz
+sample,fastq_1,fastq_2,condition,strandedness
+CONTROL_REP1,AEG588A1_S1_L002_R1_001.fastq.gz,AEG588A1_S1_L002_R2_001.fastq.gz,control,reverse
+CONTROL_REP1,AEG588A1_S1_L003_R1_001.fastq.gz,AEG588A1_S1_L003_R2_001.fastq.gz,control,reverse
+CONTROL_REP1,AEG588A1_S1_L004_R1_001.fastq.gz,AEG588A1_S1_L004_R2_001.fastq.gz,control,reverse
 ```
 
 ### Full samplesheet
 
-The pipeline will auto-detect whether a sample is single- or paired-end using the information provided in the samplesheet. The samplesheet can have as many columns as you desire, however, there is a strict requirement for the first 3 columns to match those defined in the table below.
+The pipeline will auto-detect whether a sample is single- or paired-end using the information provided in the samplesheet. The columns below are used by the workflow.
 
 A final samplesheet file consisting of both single- and paired-end data may look something like the one below. This is for 6 samples, where `TREATMENT_REP3` has been sequenced twice.
 
 ```csv title="samplesheet.csv"
-sample,fastq_1,fastq_2
-CONTROL_REP1,AEG588A1_S1_L002_R1_001.fastq.gz,AEG588A1_S1_L002_R2_001.fastq.gz
-CONTROL_REP2,AEG588A2_S2_L002_R1_001.fastq.gz,AEG588A2_S2_L002_R2_001.fastq.gz
-CONTROL_REP3,AEG588A3_S3_L002_R1_001.fastq.gz,AEG588A3_S3_L002_R2_001.fastq.gz
-TREATMENT_REP1,AEG588A4_S4_L003_R1_001.fastq.gz,
-TREATMENT_REP2,AEG588A5_S5_L003_R1_001.fastq.gz,
-TREATMENT_REP3,AEG588A6_S6_L003_R1_001.fastq.gz,
-TREATMENT_REP3,AEG588A6_S6_L004_R1_001.fastq.gz,
+sample,fastq_1,fastq_2,condition,strandedness
+CONTROL_REP1,AEG588A1_S1_L002_R1_001.fastq.gz,AEG588A1_S1_L002_R2_001.fastq.gz,control,reverse
+CONTROL_REP2,AEG588A2_S2_L002_R1_001.fastq.gz,AEG588A2_S2_L002_R2_001.fastq.gz,control,reverse
+CONTROL_REP3,AEG588A3_S3_L002_R1_001.fastq.gz,AEG588A3_S3_L002_R2_001.fastq.gz,control,reverse
+TREATMENT_REP1,AEG588A4_S4_L003_R1_001.fastq.gz,,treatment,reverse
+TREATMENT_REP2,AEG588A5_S5_L003_R1_001.fastq.gz,,treatment,reverse
+TREATMENT_REP3,AEG588A6_S6_L003_R1_001.fastq.gz,,treatment,reverse
+TREATMENT_REP3,AEG588A6_S6_L004_R1_001.fastq.gz,,treatment,reverse
 ```
 
-| Column    | Description                                                                                                                                                                            |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `sample`  | Custom sample name. This entry will be identical for multiple sequencing libraries/runs from the same sample. Spaces in sample names are automatically converted to underscores (`_`). |
-| `fastq_1` | Full path to FastQ file for Illumina short reads 1. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz".                                                             |
-| `fastq_2` | Full path to FastQ file for Illumina short reads 2. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz".                                                             |
+| Column         | Description                                                                                                                                                 |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sample`       | Custom sample name. This entry must be identical for multiple sequencing libraries/runs from the same sample. Spaces are not allowed.                       |
+| `fastq_1`      | Full path to FastQ file for Illumina short reads 1. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz".                                  |
+| `fastq_2`      | Full path to FastQ file for Illumina short reads 2. Leave empty for single-end data. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz". |
+| `condition`    | Sample condition retained as metadata. DESeq2 uses the separate file supplied with `--deseq2_samplesheet`.                                                  |
+| `strandedness` | One of `unstranded`, `forward`, `reverse`, or `auto`. `forward` and `reverse` are passed to aligners and featureCounts when supported.                      |
 
 An [example samplesheet](../assets/samplesheet.csv) has been provided with the pipeline.
 
@@ -57,10 +59,24 @@ An [example samplesheet](../assets/samplesheet.csv) has been provided with the p
 The typical command for running the pipeline is as follows:
 
 ```bash
-nextflow run nf-core/rnaseqpipeline --input ./samplesheet.csv --outdir ./results --genome GRCh37 -profile docker
+nextflow run mehdimerbah/nextflow-rnaseq --input ./samplesheet.csv --outdir ./results --aligner star --igenomes_reference GRCm38 -profile docker
 ```
 
 This will launch the pipeline with the `docker` configuration profile. See below for more information about profiles.
+
+To use custom reference files instead of iGenomes, provide both `--fasta` and `--gtf`:
+
+```bash
+nextflow run mehdimerbah/nextflow-rnaseq \
+    --input ./samplesheet.csv \
+    --outdir ./results \
+    --aligner hisat2 \
+    --fasta ./genome.fa \
+    --gtf ./genes.gtf \
+    -profile docker
+```
+
+To run gene-level featureCounts, provide a GTF annotation through `--gtf` and add `--run_featurecounts`. Add `--run_featurecounts_exon` only when feature-level exon counts are needed. Convert GFF/GFF3 annotations to GTF before counting. To run DESeq2, add `--run_deseq2` with `--deseq2_samplesheet` and `--deseq2_counts`; the metadata sample ID column defaults to `experiment_accession`.
 
 Note that the pipeline will create the following files in your working directory:
 
@@ -81,7 +97,7 @@ Pipeline settings can be provided in a `yaml` or `json` file via `-params-file <
 The above pipeline run specified with a params file in yaml format:
 
 ```bash
-nextflow run nf-core/rnaseqpipeline -profile docker -params-file params.yaml
+nextflow run mehdimerbah/nextflow-rnaseq -profile docker -params-file params.yaml
 ```
 
 with:
@@ -89,7 +105,8 @@ with:
 ```yaml title="params.yaml"
 input: './samplesheet.csv'
 outdir: './results/'
-genome: 'GRCh37'
+aligner: 'star'
+igenomes_reference: 'GRCm38'
 <...>
 ```
 
@@ -100,14 +117,14 @@ You can also generate such `YAML`/`JSON` files via [nf-core/launch](https://nf-c
 When you run the above command, Nextflow automatically pulls the pipeline code from GitHub and stores it as a cached version. When running the pipeline after this, it will always use the cached version if available - even if the pipeline has been updated since. To make sure that you're running the latest version of the pipeline, make sure that you regularly update the cached version of the pipeline:
 
 ```bash
-nextflow pull nf-core/rnaseqpipeline
+nextflow pull mehdimerbah/nextflow-rnaseq
 ```
 
 ### Reproducibility
 
 It is a good idea to specify the pipeline version when running the pipeline on your data. This ensures that a specific version of the pipeline code and software are used when you run your pipeline. If you keep using the same tag, you'll be running the same version of the pipeline, even if there have been changes to the code since.
 
-First, go to the [nf-core/rnaseqpipeline releases page](https://github.com/nf-core/rnaseqpipeline/releases) and find the latest pipeline version - numeric only (eg. `1.3.1`). Then specify this when running the pipeline with `-r` (one hyphen) - eg. `-r 1.3.1`. Of course, you can switch to another version by changing the number after the `-r` flag.
+First, go to the [mehdimerbah/nextflow-rnaseq releases page](https://github.com/mehdimerbah/nextflow-rnaseq/releases) and find the latest pipeline version - numeric only (eg. `1.3.1`). Then specify this when running the pipeline with `-r` (one hyphen) - eg. `-r 1.3.1`. Of course, you can switch to another version by changing the number after the `-r` flag.
 
 This version number will be logged in reports when you run the pipeline, so that you'll know what you used when you look back in the future. For example, at the bottom of the MultiQC reports.
 
@@ -130,7 +147,7 @@ Several generic profiles are bundled with the pipeline which instruct the pipeli
 > [!IMPORTANT]
 > We highly recommend the use of Docker or Singularity containers for full pipeline reproducibility, however when this is not possible, Conda is also supported.
 
-The pipeline also dynamically loads configurations from [https://github.com/nf-core/configs](https://github.com/nf-core/configs) when it runs, making multiple config profiles for various institutional clusters available at run time. For more information and to check if your system is supported, please see the [nf-core/configs documentation](https://github.com/nf-core/configs#documentation).
+The pipeline can load configurations from [https://github.com/nf-core/configs](https://github.com/nf-core/configs) when `--custom_config_base` is set, making multiple config profiles for various institutional clusters available at run time. For more information and to check if your system is supported, please see the [nf-core/configs documentation](https://github.com/nf-core/configs#documentation).
 
 Note that multiple profiles can be loaded, for example: `-profile test,docker` - the order of arguments is important!
 They are loaded in sequence, so later profiles can overwrite earlier profiles.
@@ -189,7 +206,7 @@ To learn how to provide additional arguments to a particular tool of the pipelin
 
 ### nf-core/configs
 
-In most cases, you will only need to create a custom config as a one-off but if you and others within your organisation are likely to be running nf-core pipelines regularly and need to use the same settings regularly it may be a good idea to request that your custom config file is uploaded to the `nf-core/configs` git repository. Before you do this please can you test that the config file works with your pipeline of choice using the `-c` parameter. You can then create a pull request to the `nf-core/configs` repository with the addition of your config file, associated documentation file (see examples in [`nf-core/configs/docs`](https://github.com/nf-core/configs/tree/master/docs)), and amending [`nfcore_custom.config`](https://github.com/nf-core/configs/blob/master/nfcore_custom.config) to include your custom profile.
+In most cases, you will only need to create a custom config as a one-off but if you and others within your organisation are likely to be running nf-core pipelines regularly and need to use the same settings regularly it may be a good idea to request that your custom config file is uploaded to the `nf-core/configs` git repository. Before you do this please can you test that the config file works with your pipeline of choice using the `-c` parameter. You can then create a pull request to the `nf-core/configs` repository with the addition of your config file, associated documentation file (see examples in [`nf-core/configs/docs`](https://github.com/nf-core/configs/tree/master/docs)), and amending [`nfcore_custom.config`](https://github.com/nf-core/configs/blob/main/nfcore_custom.config) to include your custom profile.
 
 See the main [Nextflow documentation](https://www.nextflow.io/docs/latest/config.html) for more information about creating your own configuration files.
 

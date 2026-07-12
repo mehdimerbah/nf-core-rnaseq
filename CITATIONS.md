@@ -1,4 +1,4 @@
-# nf-core/rnaseqpipeline: Citations
+# mehdimerbah/nextflow-rnaseq: Citations
 
 ## [nf-core](https://pubmed.ncbi.nlm.nih.gov/32055031/)
 
@@ -10,29 +10,37 @@
 
 ## Pipeline tools
 
-- [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
-
-> Andrews, S. (2010). FastQC: A Quality Control Tool for High Throughput Sequence Data [Online].
-
 - [TrimGalore!](https://github.com/FelixKrueger/TrimGalore)
 
 > Krueger, Felix. "Trim Galore!: A wrapper around Cutadapt and FastQC to consistently apply adapter and quality trimming to FastQ files, with extra functionality for RRBS data." Babraham Institute (2015).
+
+- [Cutadapt](https://cutadapt.readthedocs.io/)
+
+> Martin, Marcel. "Cutadapt removes adapter sequences from high-throughput sequencing reads." EMBnet.journal 17.1 (2011): 10-12.
 
 - [STAR](https://pubmed.ncbi.nlm.nih.gov/23104886/)
 
 > Dobin, Alexander, et al. "STAR: ultrafast universal RNA-seq aligner." Bioinformatics 29.1 (2013): 15-21.
 
+- [Bowtie2](https://pubmed.ncbi.nlm.nih.gov/22388286/)
+
+> Langmead, Ben, and Steven L. Salzberg. "Fast gapped-read alignment with Bowtie 2." Nature methods 9.4 (2012): 357-359.
+
+- [HISAT2](https://pubmed.ncbi.nlm.nih.gov/31375807/)
+
+> Kim, Daehwan, Joseph M. Paggi, Chanhee Park, Christopher Bennett, and Steven L. Salzberg. "Graph-based genome alignment and genotyping with HISAT2 and HISAT-genotype." Nature biotechnology 37.8 (2019): 907-915.
+
 - [Samtools](https://www.htslib.org/)
 
 > Danecek, Petr, et al. "Twelve years of SAMtools and BCFtools." Gigascience 10.2 (2021): giab008.
 
-- [picard MarkDuplicates](https://gatk.broadinstitute.org/hc/en-us/articles/360037052812-MarkDuplicates-Picard)
+- [featureCounts](https://pubmed.ncbi.nlm.nih.gov/24227677/)
 
-> Picard toolkit. https://broadinstitute.github.io/picard/, 2019
+> Liao, Yang, Gordon K. Smyth, and Wei Shi. "featureCounts: an efficient general purpose program for assigning sequence reads to genomic features." Bioinformatics 30.7 (2014): 923-930.
 
-- [Stringtie](https://ccb.jhu.edu/software/stringtie/)
+- [DESeq2](https://pubmed.ncbi.nlm.nih.gov/25516281/)
 
-> Pertea, Mihaela, et al. "StringTie enables improved reconstruction of a transcriptome from RNA-seq reads." Nature biotechnology 33.3 (2015): 290-295.
+> Love, Michael I., Wolfgang Huber, and Simon Anders. "Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2." Genome Biology 15.12 (2014): 550.
 
 - [MultiQC](https://pubmed.ncbi.nlm.nih.gov/27312411/)
 

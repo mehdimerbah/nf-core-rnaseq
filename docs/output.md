@@ -1,211 +1,146 @@
-# nf-core/rnaseqpipeline: Output
+# mehdimerbah/nextflow-rnaseq: Output
 
 ## Introduction
 
-This document describes the output produced by the nf-core/rnaseqpipeline. The pipeline performs comprehensive RNA-seq analysis including quality control, read trimming, alignment, duplicate removal, and transcript quantification. Most of the plots and summary statistics are consolidated in the MultiQC report, which provides an overview of results at the end of the pipeline.
+This document describes the outputs produced by the current mehdimerbah/nextflow-rnaseq workflow. The pipeline trims FASTQ reads, aligns them with one selected aligner, normalizes the alignment output through SAMtools, optionally runs featureCounts and DESeq2, and summarizes available logs with MultiQC.
 
-The directories listed below will be created in the results directory after the pipeline has finished. All paths are relative to the top-level results directory.
+All paths below are relative to the top-level output directory.
 
-<!-- TODO nf-core: Write this documentation describing your workflow's output -->
+## Pipeline Overview
 
-## Pipeline overview
+The active workflow runs these stages:
 
-The pipeline is built using [Nextflow](https://www.nextflow.io/) and processes RNA-seq data using the following steps:
+- [TrimGalore](#trimgalore) - adapter and quality trimming
+- [STAR](#star) or [Bowtie2](#bowtie2) or [HISAT2](#hisat2) - selected with `--aligner`
+- [SAMtools](#samtools) - sorted/indexed BAMs and alignment statistics
+- [featureCounts](#featurecounts) - optional gene-level and opt-in exon-level counting
+- [DESeq2](#deseq2) - optional differential expression analysis
+- [MultiQC](#multiqc) - aggregate report
+- [Pipeline Information](#pipeline-information) - execution metadata
 
-- [FastQC](#fastqc) - Raw read quality control
-- [TrimGalore](#trimgalore) - Adapter trimming and quality filtering
-- [FastQC (Trimmed)](#fastqc-trimmed) - Quality control on trimmed reads
-- [STAR](#star-alignment) - Genome indexing and read alignment
-- [SAMtools](#samtools) - BAM file processing and statistics
-- [Picard MarkDuplicates](#picard-markduplicates) - PCR duplicate removal
-- [StringTie](#stringtie-assembly--quantification) - Transcript assembly and quantification
-- [StringTie Aggregation](#stringtie-aggregation) - Merge and aggregate expression matrices
-- [MultiQC](#multiqc) - Aggregate report describing results and QC from the whole pipeline
-- [Pipeline information](#pipeline-information) - Report metrics generated during the workflow execution
-
-The pipeline follows a standard RNA-seq analysis workflow: quality control → trimming → alignment → duplicate removal → quantification → reporting.
-
-> **Note:** Exact directories depend on the modules you enable and the parameters used.
-
----
-
-### FastQC
+## TrimGalore
 
 <details><summary>Output files</summary>
 
-- `fastqc/*_fastqc.html` – interactive read QC per input FASTQ  
-- `fastqc/*_fastqc.zip` – tabular metrics + images
+- `trimgalore/*_val_1.fq.gz` and `trimgalore/*_val_2.fq.gz` - trimmed paired-end reads
+- `trimgalore/*_trimmed.fq.gz` - trimmed single-end reads
+- `trimgalore/*_trimming_report.txt` - trimming and adapter-removal summary
 
 </details>
 
-[FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/) performs quality control checks on raw sequence data coming from high throughput sequencing pipelines.
+TrimGalore wraps Cutadapt and trims adapters and low-quality bases before alignment. The trimming reports are included in MultiQC.
 
-**What to check:** per-base quality (aim ≥ Q30), adapter content, GC distribution, overrepresented sequences. (Summaries appear in MultiQC.)
+## STAR
 
----
-
-### TrimGalore
+Produced when `--aligner star` is selected.
 
 <details><summary>Output files</summary>
 
-- `trimgalore/<sample>_trimmed.fq.gz` – trimmed FASTQ files
-- `trimgalore/<sample>_trimming_report.txt` – trimming statistics and adapter removal summary
+- `star/star/` - generated STAR genome index
+- `star/*.Aligned.sortedByCoord.out.bam` - STAR alignment output
+- `star/*Log.final.out`, `star/*Log.out`, `star/*Log.progress.out` - STAR logs
+- `star/*.SJ.out.tab` - splice junction table
 
 </details>
 
-[TrimGalore](https://github.com/FelixKrueger/TrimGalore) is a wrapper around [Cutadapt](https://cutadapt.readthedocs.io/en/stable/) and [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/) that consistently applies quality and adapter trimming to FastQ files.
+STAR is splice-aware and is the default aligner.
 
-**Why it matters:** Removes low-quality bases and adapter sequences that can negatively impact downstream alignment and analysis. The trimming reports show how many reads were processed and what adapters were detected.
+## Bowtie2
 
----
-
-### FastQC (Trimmed)
+Produced when `--aligner bowtie2` is selected.
 
 <details><summary>Output files</summary>
 
-- `fastqc/*_trimmed_fastqc.html` – interactive QC report for trimmed reads
-- `fastqc/*_trimmed_fastqc.zip` – tabular metrics + images for trimmed reads
+- `bowtie2/bowtie2/` - generated Bowtie2 genome index
+- `bowtie2/*.bam` - Bowtie2 alignment output before the shared SAMtools sort step
+- `bowtie2/*.bowtie2.log` - Bowtie2 alignment logs
 
 </details>
 
-Quality control analysis performed on the trimmed reads to ensure the trimming process was effective.
+Bowtie2 is not splice-aware, but is useful for quick mapping or comparison runs.
 
-**What to check:** Improvement in quality scores compared to raw reads, successful removal of adapter contamination, and overall read quality distribution.
+## HISAT2
 
----
-
-### STAR alignment
+Produced when `--aligner hisat2` is selected.
 
 <details><summary>Output files</summary>
 
-- `star/<sample>.bam` (+ `.bai`) – coordinate-sorted alignments  
-- `star/<sample>.SJ.out.tab` – detected splice junctions  
-- `star/Log.final.out` and other `Log.*` – mapping summary & parameters
+- `hisat2/hisat2/` - generated HISAT2 index when `--hisat2_index` is not supplied
+- `hisat2/*.bam` - HISAT2 alignment output before the shared SAMtools sort step
+- `hisat2/*.hisat2.summary.log` - HISAT2 alignment summary
+- `hisat2/*.unmapped_1.fastq.gz` and `hisat2/*.unmapped_2.fastq.gz` - unmapped reads when `--save_unaligned` is enabled
 
 </details>
 
-[STAR](https://github.com/alexdobin/STAR) (Spliced Transcripts Alignment to a Reference) is a fast RNA-seq read aligner designed to handle splice junctions in eukaryotic transcripts.
+HISAT2 is splice-aware. A pre-built index directory can be supplied with `--hisat2_index`.
 
-**Why it matters:** BAMs underpin expression estimates and allow IGV inspection; `Log.final.out` (parsed by MultiQC) shows % mapped/uniquely mapped, mismatch rates, chimeric fraction. STAR is particularly well-suited for RNA-seq as it can align reads across exon-exon junctions.
-
----
-
-### SAMtools
+## SAMtools
 
 <details><summary>Output files</summary>
 
-- `samtools/<sample>.sorted.bam` (+ `.bai`) – coordinate-sorted BAM files
-- `samtools/<sample>.stats.txt` – comprehensive alignment statistics
-- `samtools/<sample>.flagstat.txt` – basic alignment statistics
+- `samtools/*.sorted.bam` - coordinate-sorted BAM files from the selected aligner
+- `samtools/*.sorted.bam.bai` - BAM indexes
+- `samtools/*.stats` - alignment statistics
 
 </details>
 
-[SAMtools](http://www.htslib.org/) is a suite of programs for interacting with high-throughput sequencing data in SAM/BAM format.
+All aligner branches feed into the same SAMtools sort, index, and stats steps so downstream outputs are consistent.
 
-**Why it matters:** 
-- **Sort**: Coordinates sorting enables efficient downstream processing and visualization
-- **Index**: Creates index files required for fast random access to BAM files
-- **Stats**: Provides detailed statistics about alignment quality, insert sizes, and coverage that are essential for QC
+## featureCounts
 
----
-
-### Picard MarkDuplicates
+Gene-level output is produced only when `--run_featurecounts` is enabled. Feature-level exon output is produced only when `--run_featurecounts_exon` is also enabled. Requires `--gtf`; convert GFF/GFF3 annotations to GTF before counting. Exon rows are identified by gene ID plus genomic coordinates and are not a complete alternative-splicing analysis.
 
 <details><summary>Output files</summary>
 
-- `picard/<sample>.markdup.bam` (+ `.bai`) – duplicates flagged  
-- `picard/<sample>.markdup.metrics.txt` – duplication summary
+- `featurecounts/*.gene.featureCounts.tsv` - gene-level counts
+- `featurecounts/*.gene.featureCounts.tsv.summary` - gene-level assignment summary
+- `featurecounts/*.exon.featureCounts.tsv` - exon-level counts, when `--run_featurecounts_exon` is enabled
+- `featurecounts/*.exon.featureCounts.tsv.summary` - exon-level assignment summary, when `--run_featurecounts_exon` is enabled
 
 </details>
 
-[Picard MarkDuplicates](https://gatk.broadinstitute.org/hc/en-us/articles/360037052812-MarkDuplicates-Picard) identifies and flags PCR duplicate reads in BAM files.
+By default, featureCounts uses `--primary`. With `--fc_count_multimappers`, it uses `-M -O` to count multi-mapping and overlapping reads.
 
-**Why it matters:** PCR duplicates can artificially inflate expression levels and bias quantification results. Duplicate rates provide insight into library complexity and can influence differential expression analysis strategies. MultiQC collates these metrics for easy interpretation across samples.
+## DESeq2
 
----
-
-### StringTie assembly & quantification
+Produced only when `--run_deseq2` is enabled. Requires `--deseq2_samplesheet` and `--deseq2_counts`.
 
 <details><summary>Output files</summary>
 
-- `stringtie/<sample>.gtf` – per-sample assembled transcripts  
-- `stringtie/<sample>_abundance.tsv` – transcript-level TPM/FPKM  
+- `deseq2/*.deseq2.results.tsv` - differential expression results
+- `deseq2/*.normalised_counts.tsv` - normalized counts
+- `deseq2/*.deseq2.sizefactors.tsv` - size factors
+- `deseq2/*.deseq2.dispersion.png` - dispersion plot
+- `deseq2/*.deseq2.model.txt` - model information
+- `deseq2/*.R_sessionInfo.log` - R session information
 
 </details>
 
-[StringTie](https://ccb.jhu.edu/software/stringtie/) assembles RNA-seq alignments into potential transcripts and estimates their abundances.
+The current DESeq2 step consumes a prepared count matrix. It does not yet merge per-sample featureCounts outputs into a DESeq2 matrix inside the workflow.
+The DESeq2 count matrix gene column defaults to `gene_id`, and the sample metadata ID column defaults to `experiment_accession`.
 
-**Why it matters:** Enables gene/transcript quantification and potential novel isoform discovery. StringTie can identify new splice variants and provide accurate abundance estimates in TPM (Transcripts Per Million) and FPKM (Fragments Per Kilobase Million) units.
-
----
-
-### StringTie Aggregation
+## MultiQC
 
 <details><summary>Output files</summary>
 
-- `gene_table/gene_table_TPM.tsv` – merged gene-level TPM expression matrix
+- `multiqc/multiqc_report.html` - aggregate HTML report
+- `multiqc/multiqc_data/` - parsed report data
 
 </details>
 
-Custom aggregation modules (`AGGREGATESTRINGTIE` and `MERGESTRINGTIE`) process individual StringTie outputs to create merged expression matrices.
+MultiQC summarizes available TrimGalore, aligner, SAMtools, featureCounts, workflow, and software-version outputs.
 
-**Why it matters:** 
-- **Aggregation**: Removes duplicate gene entries and standardizes identifiers across samples
-- **Merging**: Combines all samples into ready-to-use expression matrices for downstream analysis (e.g., DESeq2, edgeR)
-- **Output formats**: Both gene-level and transcript-level quantifications are provided in standard formats
-
----
-
-### MultiQC
+## Pipeline Information
 
 <details><summary>Output files</summary>
 
-- `multiqc/multiqc_report.html` – comprehensive HTML summary report  
-- `multiqc/multiqc_data/` – parsed statistics in machine-readable formats
-- `multiqc/multiqc_plots/` – individual plot files in multiple formats
+- `pipeline_info/execution_report_*.html` - Nextflow execution report
+- `pipeline_info/execution_timeline_*.html` - task timeline
+- `pipeline_info/execution_trace_*.txt` - task trace
+- `pipeline_info/pipeline_dag_*.html` - workflow DAG
+- `pipeline_info/nextflow_rnaseq_software_mqc_versions.yml` - software versions used by MultiQC
+- `pipeline_info/params_*.json` - run parameters
 
 </details>
 
-[MultiQC](http://multiqc.info/) searches a given directory for analysis logs and compiles an HTML report with interactive plots and tables summarizing key metrics from the entire pipeline.
-
-**What's included:** 
-- **FastQC summaries**: Quality metrics for raw and trimmed reads
-- **TrimGalore reports**: Adapter removal and trimming statistics  
-- **STAR alignment**: Mapping rates, splice junction detection, and alignment metrics
-- **SAMtools stats**: Detailed alignment statistics and quality metrics
-- **Picard metrics**: PCR duplication rates and library complexity
-- **Software versions table**: Complete list of tools and versions used
-- **Workflow summary**: Pipeline parameters and execution details
-
-**Why it's essential:** Provides a single, comprehensive view of your entire analysis, making it easy to identify potential issues, compare samples, and generate figures for publications and reports.
-
----
-
-
-### Pipeline information
-
-<details markdown="1">
-<summary>Output files</summary>
-
-- `pipeline_info/`
-  - Reports generated by Nextflow: `execution_report.html`, `execution_timeline.html`, `execution_trace.txt` and `pipeline_dag.dot`/`pipeline_dag.svg`.
-  - Reports generated by the pipeline: `pipeline_report.html`, `pipeline_report.txt` and `software_versions.yml`. The `pipeline_report*` files will only be present if the `--email` / `--email_on_fail` parameter's are used when running the pipeline.
-  - Reformatted samplesheet files used as input to the pipeline: `samplesheet.valid.csv`.
-  - Parameters used by the pipeline run: `params.json`.
-
-</details>
-
-[Nextflow](https://www.nextflow.io/docs/latest/tracing.html) provides excellent functionality for generating various reports relevant to the running and execution of the pipeline.
-
-**Key reports:**
-- **Execution report**: Resource usage, task duration, and success/failure status for each process
-- **Timeline**: Visual timeline showing when each task ran and how long it took
-- **Trace file**: Detailed execution log with resource consumption metrics
-- **Pipeline DAG**: Directed acyclic graph showing the workflow structure and dependencies
-
-These reports allow you to:
-- Troubleshoot errors and failed processes
-- Optimize resource allocation for future runs  
-- Track computational requirements and costs
-- Document methods and software versions for reproducibility
-- Monitor pipeline performance and identify bottlenecks
+These files are useful for debugging, reproducibility, and resource-usage review.

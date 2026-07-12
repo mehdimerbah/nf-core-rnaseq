@@ -1,12 +1,49 @@
+# Nextflow and nf-test runtime state
 .nextflow*
+.nf-test*
 work/
-data/
 results*/
-.DS_Store
-testing/
-testing*
-*.pyc
-null/
+validation/work*/
+validation/results*/
+tests/work-*/
+tests/results-*/
+
+# Local sequencing/reference data and environments
 fastq*/
-!fastqc/
+mm_samples*/
+hisat2_index*/
+*_env/
+*.bam
+*.bai
+*.cram
+*.crai
+
+# Class analysis artifacts kept outside the public pipeline
+count_data/
+de_analysis/
+lef1_analysis/
+qualimap_results/
+presentation*/
 scripts*/
+README_assignment_*.md
+*.pdf
+*.pptx
+*.pyc
+node_modules/
+package.json
+package-lock.json
+nf-test
+samplesheet_AT_*.csv
+aligner_comparison*.csv
+analyze_lef1_splicing.py
+compare_aligners.py
+differential_expression_analysis.py
+normalize_counts.py
+genes.bed
+
+# Editor and OS files
+.claude/
+.DS_Store
+
+# Uncompressed copies of tracked compressed fixtures
+validation/small/*.fastq
