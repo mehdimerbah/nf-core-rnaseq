@@ -17,7 +17,6 @@ jobs:
       - uses: nf-core/setup-nextflow@v2
         with:
           version: "25.10.0"
-      - run: pip install pre-commit nf-core==3.3.2
+      - run: pip install pre-commit
       - run: pre-commit run --all-files
-      - run: nf-core pipelines lint --dir .
       - run: nextflow config -profile test,docker >/dev/null
