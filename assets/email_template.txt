@@ -4,15 +4,15 @@
   |\\ | |__  __ /  ` /  \\ |__) |__         }  {
   | \\| |       \\__, \\__/ |  \\ |___     \\`-._,-`-,
                                         `._,._,'
-  nf-core/rnaseqpipeline ${version}
+  mehdimerbah/nextflow-rnaseq ${version}
 ----------------------------------------------------
 Run Name: $runName
 
 <% if (success){
-    out << "## nf-core/rnaseqpipeline execution completed successfully! ##"
+    out << "## mehdimerbah/nextflow-rnaseq execution completed successfully! ##"
 } else {
     out << """####################################################
-## nf-core/rnaseqpipeline execution completed unsuccessfully! ##
+## mehdimerbah/nextflow-rnaseq execution completed unsuccessfully! ##
 ####################################################
 The exit status of the task that caused the workflow execution to fail was: $exitStatus.
 The full error message was:
@@ -35,5 +35,5 @@ Pipeline Configuration:
 <% out << summary.collect{ k,v -> " - $k: $v" }.join("\n") %>
 
 --
-nf-core/rnaseqpipeline
-https://github.com/nf-core/rnaseqpipeline
+mehdimerbah/nextflow-rnaseq
+https://github.com/mehdimerbah/nextflow-rnaseq

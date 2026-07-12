@@ -17,7 +17,7 @@
                         "size": "Large",
                         "weight": "Bolder",
                         "color": "<% if (success) { %>Good<% } else { %>Attention<%} %>",
-                        "text": "nf-core/rnaseqpipeline v${version} - ${runName}",
+                        "text": "mehdimerbah/nextflow-rnaseq v${version} - ${runName}",
                         "wrap": true
                     },
                     {

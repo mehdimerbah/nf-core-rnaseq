@@ -1,16 +1,21 @@
-# nf-core/rnaseqpipeline: Changelog
+# Changelog
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The project follows [Semantic Versioning](https://semver.org/).
 
-## v1.0.0dev - [date]
+## 2.0.0 - 2026-07-12
 
-Initial release of nf-core/rnaseqpipeline, created with the [nf-core](https://nf-co.re/) template.
+### Added
 
-### `Added`
+- Selectable STAR, Bowtie2, and HISAT2 alignment.
+- Shared SAMtools sorting, indexing, and statistics.
+- Optional gene/exon featureCounts and prepared-matrix DESeq2 analysis.
+- Self-contained regression fixtures and public CI.
 
-### `Fixed`
+### Changed
 
-### `Dependencies`
+- Rebranded as the independent `mehdimerbah/nextflow-rnaseq` portfolio pipeline.
+- Restricted repeated-lane samples to STAR; Bowtie2 and HISAT2 now reject them explicitly.
 
-### `Deprecated`
+### Removed
+
+- Unused class-era FastQC, Picard, StringTie, IGV, bedtools, local aggregation modules, profiles, and nf-core infrastructure workflows.

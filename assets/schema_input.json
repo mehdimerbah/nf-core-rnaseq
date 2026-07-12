@@ -1,7 +1,7 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://raw.githubusercontent.com/nf-core/rnaseqpipeline/master/assets/schema_input.json",
-    "title": "nf-core/rnaseqpipeline pipeline - params.input schema",
+    "$id": "https://raw.githubusercontent.com/mehdimerbah/nextflow-rnaseq/master/assets/schema_input.json",
+    "title": "mehdimerbah/nextflow-rnaseq pipeline - params.input schema",
     "description": "Schema for the file provided with params.input",
     "type": "array",
     "items": {
@@ -29,8 +29,8 @@
             },
             "strandedness": {
                 "type": "string",
-                "pattern": "^\\S+$",
-                "errorMessage": "Strandedness of sample",
+                "enum": ["unstranded", "forward", "reverse", "auto"],
+                "errorMessage": "Strandedness must be one of: unstranded, forward, reverse, auto",
                 "meta": ["strandedness"]
             },
             "condition": {
@@ -38,8 +38,7 @@
                 "pattern": "^\\S+$",
                 "errorMessage": "Condition",
                 "meta": ["condition"]
-            },
-            
+            }
         },
         "required": ["sample", "fastq_1"]
     }
