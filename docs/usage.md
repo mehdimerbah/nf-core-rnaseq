@@ -44,13 +44,13 @@ TREATMENT_REP3,AEG588A6_S6_L003_R1_001.fastq.gz,,treatment,reverse
 TREATMENT_REP3,AEG588A6_S6_L004_R1_001.fastq.gz,,treatment,reverse
 ```
 
-| Column    | Description                                                                                                                                                                            |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `sample`  | Custom sample name. This entry must be identical for multiple sequencing libraries/runs from the same sample. Spaces are not allowed. |
-| `fastq_1` | Full path to FastQ file for Illumina short reads 1. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz".                                                             |
-| `fastq_2` | Full path to FastQ file for Illumina short reads 2. Leave empty for single-end data. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz".                           |
-| `condition` | Sample condition retained as metadata. DESeq2 uses the separate file supplied with `--deseq2_samplesheet`.                                                                          |
-| `strandedness` | One of `unstranded`, `forward`, `reverse`, or `auto`. `forward` and `reverse` are passed to aligners and featureCounts when supported.                                          |
+| Column         | Description                                                                                                                                                 |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sample`       | Custom sample name. This entry must be identical for multiple sequencing libraries/runs from the same sample. Spaces are not allowed.                       |
+| `fastq_1`      | Full path to FastQ file for Illumina short reads 1. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz".                                  |
+| `fastq_2`      | Full path to FastQ file for Illumina short reads 2. Leave empty for single-end data. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz". |
+| `condition`    | Sample condition retained as metadata. DESeq2 uses the separate file supplied with `--deseq2_samplesheet`.                                                  |
+| `strandedness` | One of `unstranded`, `forward`, `reverse`, or `auto`. `forward` and `reverse` are passed to aligners and featureCounts when supported.                      |
 
 An [example samplesheet](../assets/samplesheet.csv) has been provided with the pipeline.
 

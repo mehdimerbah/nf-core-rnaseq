@@ -278,11 +278,7 @@
                 "deseq2_fit_type": {
                     "type": "string",
                     "default": "parametric",
-                    "enum": [
-                        "parametric",
-                        "local",
-                        "mean"
-                    ],
+                    "enum": ["parametric", "local", "mean"],
                     "description": "Dispersion fit type passed to DESeq2.",
                     "fa_icon": "fas fa-chart-area"
                 },

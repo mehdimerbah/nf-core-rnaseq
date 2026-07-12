@@ -33,7 +33,7 @@ workflow RNASEQPIPELINE {
 
     take:
     ch_samplesheet // channel: samplesheet read in from --input
-    
+
     main:
 
 
@@ -306,7 +306,7 @@ workflow RNASEQPIPELINE {
             newLine: true
         ).set { ch_collated_versions }
 
-    // 
+    //
     // MODULE: MultiQC
     //
     ch_multiqc_config        = Channel.fromPath(
