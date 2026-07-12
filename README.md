@@ -41,7 +41,7 @@ See [usage](docs/usage.md), [outputs](docs/output.md), and [citations](CITATIONS
 
 ## Scope and credits
 
-The synthetic fixtures are regression data, not biological benchmarks. A fresh installation still downloads plugins and software environments.
+The synthetic fixtures and `tests/smoke.sh` are regression data and checks, not biological benchmarks. A fresh installation still downloads plugins and software environments.
 
 Developed by Mehdi Merbah and Nicolai Oswald at the University of Tübingen as a class project inspired by nf-core/rnaseq. Upstream provenance is recorded in `modules.json` and `modules/local/README.md`.
 

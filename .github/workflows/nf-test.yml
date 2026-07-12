@@ -22,7 +22,7 @@ jobs:
       - uses: nf-core/setup-nextflow@v2
         with:
           version: ${{ matrix.nextflow }}
-      - name: Install nf-test
-        run: curl -fsSL https://code.askimed.com/install/nf-test | bash
       - name: Run pipeline regression tests
-        run: ./nf-test test tests/default.nf.test --ci --profile test,docker
+        env:
+          NXF_PROFILE: test,docker
+        run: bash tests/smoke.sh
