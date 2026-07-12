@@ -17,6 +17,12 @@ The pipeline accepts single-end or paired-end gzipped FASTQ files and runs:
 
 STAR and HISAT2 are splice-aware. Bowtie2 is included for comparison and is not recommended when splice-junction alignment is required.
 
+### Original class-project workflow
+
+![Original class-project RNA-seq workflow](docs/images/nf-core-rnaseq_grouped.drawio.png)
+
+This illustration is retained from the original class project as part of the repository's development history. It shows the initial STAR and StringTie design; the maintained workflow is the one described above and no longer runs the illustrated FastQC, Picard, or StringTie steps.
+
 ## Quick start
 
 Requirements: Nextflow `>=24.10.5` and Docker, Apptainer, Singularity, or Conda.
