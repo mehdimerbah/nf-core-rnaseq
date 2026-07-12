@@ -5,6 +5,8 @@ work/
 results*/
 validation/work*/
 validation/results*/
+tests/work-*/
+tests/results-*/
 
 # Local sequencing/reference data and environments
 fastq*/
