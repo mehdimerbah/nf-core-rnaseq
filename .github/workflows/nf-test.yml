@@ -2,7 +2,7 @@ name: End-to-end tests
 
 on:
   push:
-    branches: [main, portfolio-cleanup]
+    branches: [main, refactoring]
   pull_request:
   workflow_dispatch:
 
