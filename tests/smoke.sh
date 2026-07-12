@@ -4,6 +4,7 @@ set -euo pipefail
 profile="${NXF_PROFILE:-test,docker}"
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$root"
+rm -rf tests/results-* tests/work-*
 
 run_case() {
     local name="$1"
