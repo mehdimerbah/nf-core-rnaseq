@@ -44,7 +44,6 @@ nextflow_pipeline {
                 aligner = "hisat2"
                 run_featurecounts = true
                 run_featurecounts_exon = true
-                hisat2_build_memory = "1.GB"
             }
         }
         then {
