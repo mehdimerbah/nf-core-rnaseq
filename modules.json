@@ -1,34 +1,34 @@
 {
-    "name": "nf-core/rnaseqpipeline",
-    "homePage": "https://github.com/nf-core/rnaseqpipeline",
+    "name": "mehdimerbah/nextflow-rnaseq",
+    "homePage": "https://github.com/mehdimerbah/nextflow-rnaseq",
     "repos": {
         "https://github.com/nf-core/modules.git": {
             "modules": {
                 "nf-core": {
-                    "fastqc": {
+                    "bowtie2/align": {
+                        "branch": "master",
+                        "git_sha": "ecf739de71e6abe5690616b48a9cba924170e8f6",
+                        "installed_by": [
+                            "modules"
+                        ]
+                    },
+                    "bowtie2/build": {
                         "branch": "master",
                         "git_sha": "41dfa3f7c0ffabb96a6a813fe321c6d1cc5b6e46",
                         "installed_by": [
                             "modules"
                         ]
                     },
-                    "multiqc": {
+                    "deseq2/differential": {
+                        "branch": "master",
+                        "git_sha": "d09b58a1416b3b7cfc41e82f8bb2518239810249",
+                        "installed_by": [
+                            "modules"
+                        ]
+                    },
+                    "hisat2/extractsplicesites": {
                         "branch": "master",
                         "git_sha": "41dfa3f7c0ffabb96a6a813fe321c6d1cc5b6e46",
-                        "installed_by": [
-                            "modules"
-                        ]
-                    },
-                    "picard/markduplicates": {
-                        "branch": "master",
-                        "git_sha": "df124e87c74d8b40285199f8cc20151f5aa57255",
-                        "installed_by": [
-                            "modules"
-                        ]
-                    },
-                    "samtools/faidx": {
-                        "branch": "master",
-                        "git_sha": "c8be52dba1166c678e74cda9c3a3c221635c8bb1",
                         "installed_by": [
                             "modules"
                         ]
@@ -62,13 +62,6 @@
                         ]
                     },
                     "star/genomegenerate": {
-                        "branch": "master",
-                        "git_sha": "41dfa3f7c0ffabb96a6a813fe321c6d1cc5b6e46",
-                        "installed_by": [
-                            "modules"
-                        ]
-                    },
-                    "stringtie/stringtie": {
                         "branch": "master",
                         "git_sha": "41dfa3f7c0ffabb96a6a813fe321c6d1cc5b6e46",
                         "installed_by": [

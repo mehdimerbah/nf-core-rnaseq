@@ -1,5 +1,5 @@
 //
-// Subworkflow with functionality specific to the nf-core/rnaseqpipeline pipeline
+// Subworkflow with functionality specific to the mehdimerbah/nextflow-rnaseq pipeline
 //
 
 /*
@@ -59,8 +59,12 @@ workflow PIPELINE_INITIALISATION {
     //
     // Check config provided to the pipeline
     //
+    def positional_args = (nextflow_cli_args ?: []).findAll { arg ->
+        def value = arg?.toString()?.trim()
+        value && !(arg instanceof Boolean) && !['true', 'false'].contains(value.toLowerCase())
+    }
     UTILS_NFCORE_PIPELINE (
-        nextflow_cli_args
+        positional_args
     )
 
     //
@@ -169,6 +173,10 @@ def validateInputSamplesheet(input) {
         error("Please check input samplesheet -> Multiple runs of a sample must be of the same datatype i.e. single-end or paired-end: ${metas[0].id}")
     }
 
+    if (metas.size() > 1 && params.aligner in ['bowtie2', 'hisat2']) {
+        error("Aligner '${params.aligner}' accepts one FASTQ or FASTQ pair per sample. Sample '${metas[0].id}' occurs ${metas.size()} times; merge lanes before running or use STAR.")
+    }
+
     return [ metas[0], fastqs ]
 }
 //
@@ -200,27 +208,58 @@ def genomeExistsError() {
 // Generate methods description for MultiQC
 //
 def toolCitationText() {
-    // TODO nf-core: Optionally add in-text citation tools to this list.
     // Can use ternary operators to dynamically construct based conditions, e.g. params["run_xyz"] ? "Tool (Foo et al. 2023)" : "",
     // Uncomment function in methodsDescriptionText to render in MultiQC report
-    def citation_text = [
-            "Tools used in the workflow included:",
-            "FastQC (Andrews 2010),",
-            "MultiQC (Ewels et al. 2016)",
-            "."
-        ].join(' ').trim()
+    def aligner_citation = [
+        star   : "STAR (Dobin et al. 2013)",
+        bowtie2: "Bowtie2 (Langmead and Salzberg 2012)",
+        hisat2 : "HISAT2 (Kim et al. 2019)"
+    ][params.aligner] ?: params.aligner
+    def optional_tools = []
+    if (params.run_featurecounts) {
+        optional_tools << "featureCounts (Liao et al. 2014)"
+    }
+    if (params.run_deseq2) {
+        optional_tools << "DESeq2 (Love et al. 2014)"
+    }
+
+    def tools = [
+            "TrimGalore/Cutadapt (Krueger 2015; Martin 2011)",
+            aligner_citation,
+            "SAMtools (Danecek et al. 2021)"
+        ] + optional_tools + [
+            "MultiQC (Ewels et al. 2016)"
+        ]
+    def citation_text = "Tools used in the workflow included: ${tools.join(', ')}."
 
     return citation_text
 }
 
 def toolBibliographyText() {
-    // TODO nf-core: Optionally add bibliographic entries to this list.
     // Can use ternary operators to dynamically construct based conditions, e.g. params["run_xyz"] ? "<li>Author (2023) Pub name, Journal, DOI</li>" : "",
     // Uncomment function in methodsDescriptionText to render in MultiQC report
-    def reference_text = [
-            "<li>Andrews S, (2010) FastQC, URL: https://www.bioinformatics.babraham.ac.uk/projects/fastqc/).</li>",
-            "<li>Ewels, P., Magnusson, M., Lundin, S., & Käller, M. (2016). MultiQC: summarize analysis results for multiple tools and samples in a single report. Bioinformatics , 32(19), 3047–3048. doi: /10.1093/bioinformatics/btw354</li>"
-        ].join(' ').trim()
+    def aligner_reference = [
+        star   : "<li>Dobin, A., Davis, C. A., Schlesinger, F., et al. (2013). STAR: ultrafast universal RNA-seq aligner. Bioinformatics, 29(1), 15-21. doi: 10.1093/bioinformatics/bts635</li>",
+        bowtie2: "<li>Langmead, B., & Salzberg, S. L. (2012). Fast gapped-read alignment with Bowtie 2. Nature Methods, 9(4), 357-359. doi: 10.1038/nmeth.1923</li>",
+        hisat2 : "<li>Kim, D., Paggi, J. M., Park, C., Bennett, C., & Salzberg, S. L. (2019). Graph-based genome alignment and genotyping with HISAT2 and HISAT-genotype. Nature Biotechnology, 37(8), 907-915. doi: 10.1038/s41587-019-0201-4</li>"
+    ][params.aligner]
+    def optional_references = []
+    if (params.run_featurecounts) {
+        optional_references << "<li>Liao, Y., Smyth, G. K., & Shi, W. (2014). featureCounts: an efficient general purpose program for assigning sequence reads to genomic features. Bioinformatics, 30(7), 923-930. doi: 10.1093/bioinformatics/btt656</li>"
+    }
+    if (params.run_deseq2) {
+        optional_references << "<li>Love, M. I., Huber, W., & Anders, S. (2014). Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology, 15(12), 550. doi: 10.1186/s13059-014-0550-8</li>"
+    }
+
+    def references = [
+            "<li>Krueger, F. (2015). Trim Galore!: A wrapper around Cutadapt and FastQC to consistently apply adapter and quality trimming to FastQ files. Babraham Institute.</li>",
+            "<li>Martin, M. (2011). Cutadapt removes adapter sequences from high-throughput sequencing reads. EMBnet.journal, 17(1), 10-12. doi: 10.14806/ej.17.1.200</li>",
+            aligner_reference,
+            "<li>Danecek, P., Bonfield, J. K., Liddle, J., et al. (2021). Twelve years of SAMtools and BCFtools. GigaScience, 10(2), giab008. doi: 10.1093/gigascience/giab008</li>"
+        ] + optional_references + [
+            "<li>Ewels, P., Magnusson, M., Lundin, S., & Käller, M. (2016). MultiQC: summarize analysis results for multiple tools and samples in a single report. Bioinformatics, 32(19), 3047-3048. doi: 10.1093/bioinformatics/btw354</li>"
+        ]
+    def reference_text = references.findAll { it }.join(' ').trim()
 
     return reference_text
 }
@@ -249,9 +288,8 @@ def methodsDescriptionText(mqc_methods_yaml) {
     meta["tool_citations"] = ""
     meta["tool_bibliography"] = ""
 
-    // TODO nf-core: Only uncomment below if logic in toolCitationText/toolBibliographyText has been filled!
-    // meta["tool_citations"] = toolCitationText().replaceAll(", \\.", ".").replaceAll("\\. \\.", ".").replaceAll(", \\.", ".")
-    // meta["tool_bibliography"] = toolBibliographyText()
+    meta["tool_citations"] = toolCitationText().replaceAll(", \\.", ".").replaceAll("\\. \\.", ".")
+    meta["tool_bibliography"] = toolBibliographyText()
 
 
     def methods_text = mqc_methods_yaml.text

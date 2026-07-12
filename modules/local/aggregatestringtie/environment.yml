@@ -1,8 +1,0 @@
-name: aggregatestringtie
-channels:
-  - conda-forge
-  - bioconda
-  - defaults
-dependencies:
-  - python=3.13
-  - pandas=2.3.3

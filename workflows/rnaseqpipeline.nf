@@ -3,20 +3,21 @@
     IMPORT MODULES / SUBWORKFLOWS / FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-include { FASTQC as FASTQC; FASTQC as FASTQC_TRIMMED              } from '../modules/nf-core/fastqc/main'                // QC       // QC on trimmed reads
-include { MULTIQC as MULTIQC; MULTIQC as MULTIQC_TRIMMED        } from '../modules/nf-core/multiqc/main'               // MULTIQC // MULTIQC on trimmed reads
+include { MULTIQC                } from '../modules/local/multiqc/main'
 include { TRIMGALORE             } from '../modules/nf-core/trimgalore/main'
 include { STAR_GENOMEGENERATE    } from '../modules/nf-core/star/genomegenerate/main'
-include { STAR_ALIGN             } from '../modules/nf-core/star/align/main'      
-include { SAMTOOLS_SORT          } from '../modules/nf-core/samtools/sort/main' 
-include { SAMTOOLS_INDEX         } from '../modules/nf-core/samtools/index/main'   
-include { SAMTOOLS_FAIDX         } from '../modules/nf-core/samtools/faidx/main'   
-include { SAMTOOLS_STATS         } from '../modules/nf-core/samtools/stats/main' 
-include { INDEXFASTA             } from '../modules/local/indexfasta/indexfasta.nf'
-include { PICARD_MARKDUPLICATES  } from '../modules/nf-core/picard/markduplicates/main'
-include { STRINGTIE_STRINGTIE    } from '../modules/nf-core/stringtie/stringtie/main'  
-include { AGGREGATESTRINGTIE     } from '../modules/local/aggregatestringtie/aggregatestringtie.nf'
-include { MERGESTRINGTIE         } from '../modules/local/mergestringtie/mergestringtie.nf'
+include { STAR_ALIGN             } from '../modules/nf-core/star/align/main'
+include { BOWTIE2_BUILD          } from '../modules/nf-core/bowtie2/build/main'
+include { BOWTIE2_ALIGN          } from '../modules/nf-core/bowtie2/align/main'
+include { HISAT2_EXTRACTSPLICESITES } from '../modules/nf-core/hisat2/extractsplicesites/main'
+include { HISAT2_BUILD           } from '../modules/local/hisat2/build/main'
+include { HISAT2_ALIGN           } from '../modules/local/hisat2/align/main'
+include { SAMTOOLS_SORT          } from '../modules/nf-core/samtools/sort/main'
+include { SAMTOOLS_INDEX         } from '../modules/nf-core/samtools/index/main'
+include { SAMTOOLS_STATS         } from '../modules/nf-core/samtools/stats/main'
+include { SUBREAD_FEATURECOUNTS as FEATURECOUNTS_GENE  } from '../modules/local/subread/featurecounts/main'
+include { SUBREAD_FEATURECOUNTS as FEATURECOUNTS_EXON  } from '../modules/local/subread/featurecounts/main'
+include { DESEQ2_DIFFERENTIAL                          } from '../modules/nf-core/deseq2/differential/main'
 include { paramsSummaryMap       } from 'plugin/nf-schema'
 include { paramsSummaryMultiqc   } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
@@ -40,15 +41,6 @@ workflow RNASEQPIPELINE {
     ch_multiqc_files = Channel.empty()
 
     //
-    // MODULE: Run FastQC
-    //
-    FASTQC (
-        ch_samplesheet
-    )
-    ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
-    ch_versions = ch_versions.mix(FASTQC.out.versions.first())
-
-    //
     // Module: TRIMGALORE
     //
     TRIMGALORE (
@@ -58,52 +50,123 @@ workflow RNASEQPIPELINE {
     TRIMGALORE.out.reads
             .set { ch_samplesheet_trimmed }
 
-    ch_versions = ch_versions.mix(TRIMGALORE.out.versions.first())
+    ch_versions = ch_versions.mix(TRIMGALORE.out.versions)
     ch_multiqc_files = ch_multiqc_files.mix(TRIMGALORE.out.log.collect{it[1]})
 
     //
-    // MODULE: Run FastQC on TRIMMED
+    // Module: STAR_GENOMEGENERATE & STAR_ALIGN or BOWTIE2_BUILD & BOWTIE2_ALIGN or HISAT2_BUILD & HISAT2_ALIGN
     //
-    FASTQC_TRIMMED (
-        ch_samplesheet_trimmed
-    )
-    ch_multiqc_files = ch_multiqc_files.mix(FASTQC_TRIMMED.out.zip.collect{it[1]})
-    ch_versions = ch_versions.mix(FASTQC_TRIMMED.out.versions.first())
+    // Choose either a fully custom reference or one configured through iGenomes.
+    // All aligner branches emit BAMs that are normalized through SAMTOOLS_SORT.
+    if ((params.fasta && !params.gtf) || (!params.fasta && params.gtf)) {
+        error "Custom references must be provided as a pair. Set both --fasta and --gtf, or neither and use --genome/--igenomes_reference."
+    }
 
-    //
-    // Module: STAR_GENOMEGENERATE & STAR_ALIGN
-    //
-    ch_fasta = Channel.of( [ [ id: "${params.igenomes_reference}" ], [params.genomes[params.igenomes_reference].fasta] ] )
-    ch_gtf = Channel.of( [ [ id: "${params.igenomes_reference}" ], [params.genomes[params.igenomes_reference].gtf] ] )
+    def reference_id = params.fasta ? 'custom_genome' : (params.genome ?: params.igenomes_reference)
+    if (params.fasta && params.gtf) {
+        ch_fasta = Channel.value( [ [ id: reference_id ], file(params.fasta) ] )
+        ch_gtf   = Channel.value( [ [ id: reference_id ], file(params.gtf) ] )
+    } else {
+        if (!params.genomes || !reference_id || !params.genomes.containsKey(reference_id)) {
+            error "No usable reference found. Provide --fasta and --gtf, or set --igenomes_reference/--genome to a key in conf/igenomes.config."
+        }
+        ch_fasta = Channel.value( [ [ id: reference_id ], file(params.genomes[reference_id].fasta) ] )
+        ch_gtf   = Channel.value( [ [ id: reference_id ], file(params.genomes[reference_id].gtf) ] )
+    }
 
-    STAR_GENOMEGENERATE (
-        ch_fasta,
-        ch_gtf
-    )
+    // Choose the alignment method based on params.aligner.
+    if (params.aligner == 'star') {
+        STAR_GENOMEGENERATE (
+            ch_fasta,
+            ch_gtf
+        )
 
-    ch_versions = ch_versions.mix(STAR_GENOMEGENERATE.out.versions.first())
+        ch_versions = ch_versions.mix(STAR_GENOMEGENERATE.out.versions)
 
-    STAR_ALIGN (
-        ch_samplesheet_trimmed,
-        STAR_GENOMEGENERATE.out.index.collect(),
-        ch_gtf.collect(),
-        [],
-        [],
-        []
-    )
+        STAR_ALIGN (
+            ch_samplesheet_trimmed,
+            STAR_GENOMEGENERATE.out.index.collect(),
+            ch_gtf.collect(),
+            false,
+            'ILLUMINA',
+            params.seq_center ?: ''
+        )
 
-    ch_versions = ch_versions.mix(STAR_ALIGN.out.versions.first())
+        ch_versions = ch_versions.mix(STAR_ALIGN.out.versions)
+        ch_alignment_bam = STAR_ALIGN.out.bam
+        ch_multiqc_files = ch_multiqc_files.mix(STAR_ALIGN.out.log_final.collect{it[1]})
+
+    } else if (params.aligner == 'bowtie2') {
+        BOWTIE2_BUILD (
+            ch_fasta
+        )
+
+        ch_versions = ch_versions.mix(BOWTIE2_BUILD.out.versions)
+
+        BOWTIE2_ALIGN (
+            ch_samplesheet_trimmed,
+            BOWTIE2_BUILD.out.index.collect(),
+            ch_fasta.collect(),
+            false,  // This is to specify NOT saving unaligned reads
+            false   // keep a consistent downstream sort/index/stats path for all aligners
+        )
+
+        ch_versions = ch_versions.mix(BOWTIE2_ALIGN.out.versions)
+        ch_alignment_bam = BOWTIE2_ALIGN.out.bam
+        ch_multiqc_files = ch_multiqc_files.mix(BOWTIE2_ALIGN.out.log.collect{it[1]})
+
+    } else if (params.aligner == 'hisat2') {
+        // Use pre-built index if provided, otherwise build it
+        if (params.hisat2_index) {
+            // Using pre-built HISAT2 index - use .collect() to make it a value channel
+            // that can be reused for all samples
+            ch_hisat2_index = Channel.value([[id: 'hisat2_index'], file(params.hisat2_index)])
+
+            HISAT2_ALIGN (
+                ch_samplesheet_trimmed,
+                ch_hisat2_index,
+                Channel.value([[id: 'none'], []])  // Empty splice sites channel as value
+            )
+        } else {
+            // Build HISAT2 index from scratch
+            HISAT2_EXTRACTSPLICESITES (
+                ch_gtf
+            )
+
+            ch_versions = ch_versions.mix(HISAT2_EXTRACTSPLICESITES.out.versions)
+
+            HISAT2_BUILD (
+                ch_fasta,
+                ch_gtf,
+                HISAT2_EXTRACTSPLICESITES.out.txt
+            )
+
+            ch_versions = ch_versions.mix(HISAT2_BUILD.out.versions)
+
+            HISAT2_ALIGN (
+                ch_samplesheet_trimmed,
+                HISAT2_BUILD.out.index.collect(),
+                HISAT2_EXTRACTSPLICESITES.out.txt.collect()
+            )
+        }
+
+        ch_versions = ch_versions.mix(HISAT2_ALIGN.out.versions)
+        ch_alignment_bam = HISAT2_ALIGN.out.bam
+        ch_multiqc_files = ch_multiqc_files.mix(HISAT2_ALIGN.out.summary.collect{it[1]})
+    } else {
+        error "Unsupported aligner '${params.aligner}'. Choose one of: star, bowtie2, hisat2."
+    }
 
     //
     // Module: SAMTOOLS sort, index, stats
     //
     SAMTOOLS_SORT (
-            STAR_ALIGN.out.bam,
+            ch_alignment_bam,
             ch_fasta.collect(),
             []
         )
 
-    ch_versions = ch_versions.mix(SAMTOOLS_SORT.out.versions.first())
+    ch_versions = ch_versions.mix(SAMTOOLS_SORT.out.versions)
 
     SAMTOOLS_SORT.out.bam
         .set { ch_bam }
@@ -112,7 +175,7 @@ workflow RNASEQPIPELINE {
         ch_bam
     )
 
-    ch_versions = ch_versions.mix(SAMTOOLS_INDEX.out.versions.first())
+    ch_versions = ch_versions.mix(SAMTOOLS_INDEX.out.versions)
 
     ch_bam
         .join(SAMTOOLS_INDEX.out.bai, by: [0], remainder: true)
@@ -132,60 +195,105 @@ workflow RNASEQPIPELINE {
         ch_fasta.collect()
     )
 
-    ch_versions = ch_versions.mix(SAMTOOLS_STATS.out.versions.first())
+    ch_versions = ch_versions.mix(SAMTOOLS_STATS.out.versions)
     ch_multiqc_files = ch_multiqc_files.mix(SAMTOOLS_STATS.out.stats.collect{it[1]})
 
-    //
-    // Module: PICARD markduplicates
-    //
+    // ========================================================================
+    // FEATURECOUNTS - Read counting for gene expression quantification
+    // ========================================================================
 
-    // Local Module IndexFasta: create reference .fai index file
-    INDEXFASTA ( ch_fasta )
-    INDEXFASTA.out.fai.set { ch_fai }
+    def featurecounts_annotation = params.gtf
 
-    PICARD_MARKDUPLICATES (
-        ch_bam,
-        ch_fasta.collect(),
-        ch_fai.collect()
-    )
+    if (params.run_featurecounts_exon && !params.run_featurecounts) {
+        error "Exon-level featureCounts requested with --run_featurecounts_exon, but --run_featurecounts is not enabled."
+    }
 
-    ch_versions = ch_versions.mix(PICARD_MARKDUPLICATES.out.versions.first())
-    ch_multiqc_files = ch_multiqc_files.mix(PICARD_MARKDUPLICATES.out.metrics.collect{it[1]})
+    // Only run featureCounts if requested and an annotation is available.
+    if (params.run_featurecounts) {
+        if (!featurecounts_annotation) {
+            error "featureCounts requested with --run_featurecounts, but no --gtf annotation was provided. Convert GFF/GFF3 annotations to GTF before counting."
+        }
 
-    //
-    // Module: StringTie
-    //
-    // gtf_channel = Channel.of(params.genomes[params.igenomes_reference].gtf)
+        // Prepare input for featureCounts: combine BAM with annotation
+        ch_bam
+            .map { meta, bam -> [meta, bam, file(featurecounts_annotation)] }
+            .set { ch_featurecounts_input }
 
-    STRINGTIE_STRINGTIE (
-        PICARD_MARKDUPLICATES.out.bam,
-        ch_gtf.map { meta, gtf -> gtf}.collect()
-    )
+        //
+        // Module: FEATURECOUNTS - Gene-level counting
+        // Uses -t exon -g gene_id.
+        //
+        FEATURECOUNTS_GENE (
+            ch_featurecounts_input
+        )
 
-    ch_versions = ch_versions.mix(STRINGTIE_STRINGTIE.out.versions.first())
+        ch_versions = ch_versions.mix(FEATURECOUNTS_GENE.out.versions)
+        ch_multiqc_files = ch_multiqc_files.mix(FEATURECOUNTS_GENE.out.summary.collect{ _meta, summary -> summary })
 
-    //
-    // Module: AGGREGATESTRINGTIE - Remove duplicate gene entries
-    //
-    AGGREGATESTRINGTIE (
-        STRINGTIE_STRINGTIE.out.abundance
-    )
+        if (params.run_featurecounts_exon) {
+            //
+            // Module: FEATURECOUNTS - Feature-level exon counting
+            // Uses feature-level exon counting.
+            //
+            FEATURECOUNTS_EXON (
+                ch_featurecounts_input
+            )
 
-    ch_versions = ch_versions.mix(AGGREGATESTRINGTIE.out.versions.first())
+            ch_versions = ch_versions.mix(FEATURECOUNTS_EXON.out.versions)
+            // Exon-level tables are published, but only gene-level summaries are sent to
+            // MultiQC because both reports otherwise collapse to the same sample name.
+        }
+    }
 
-    //
-    // Module: AGGREGATESTRINGTIE & MERGESTRINGTIE
-    //
-    AGGREGATESTRINGTIE.out.abundance.map{meta, f -> f}.collect().set {merge_in}
-    
-    MERGESTRINGTIE ( merge_in )
-    MERGESTRINGTIE.out.tsv.view { it -> "TPM table exported to $it" }
+    // ========================================================================
+    // DESEQ2 - Differential Expression Analysis
+    // ========================================================================
 
-    ch_versions = ch_versions.mix(MERGESTRINGTIE.out.versions.first())
+    if (params.run_deseq2) {
+        if (!params.deseq2_samplesheet || !params.deseq2_counts) {
+            error "DESeq2 requested with --run_deseq2, but --deseq2_samplesheet and --deseq2_counts were not both provided."
+        }
 
-    ///////////////////////////////////
-    ///////////////////////////////////
+        // DESeq2 requires:
+        // 1. Contrast info: meta, contrast_variable, reference, target, formula, comparison
+        // 2. Samplesheet and counts: meta2, samplesheet, counts
+        // 3. Control genes (optional): meta3, control_genes_file
+        // 4. Transcript lengths (optional): meta4, transcript_lengths_file
 
+        ch_deseq2_contrast = Channel.of([
+            [id: params.deseq2_contrast_id ?: 'KO_vs_WT'],  // meta
+            params.deseq2_contrast_variable ?: 'condition', // contrast_variable
+            params.deseq2_reference ?: 'WT',                // reference
+            params.deseq2_target ?: 'KO',                   // target
+            '',                                              // formula (empty = use contrast_variable)
+            ''                                               // comparison (empty = auto-generate)
+        ])
+
+        ch_deseq2_input = Channel.of([
+            [id: 'samplesheet'],                            // meta2
+            file(params.deseq2_samplesheet),                // samplesheet
+            file(params.deseq2_counts)                      // counts
+        ])
+
+        ch_deseq2_control_genes = Channel.of([
+            [id: 'none'],                                   // meta3
+            []                                               // control_genes_file (empty)
+        ])
+
+        ch_deseq2_lengths = Channel.of([
+            [id: 'none'],                                   // meta4
+            []                                               // transcript_lengths_file (empty)
+        ])
+
+        DESEQ2_DIFFERENTIAL (
+            ch_deseq2_contrast,
+            ch_deseq2_input,
+            ch_deseq2_control_genes,
+            ch_deseq2_lengths
+        )
+
+        ch_versions = ch_versions.mix(DESEQ2_DIFFERENTIAL.out.versions)
+    }
 
     //
     // Collate and save software versions
@@ -193,7 +301,7 @@ workflow RNASEQPIPELINE {
     softwareVersionsToYAML(ch_versions)
         .collectFile(
             storeDir: "${params.outdir}/pipeline_info",
-            name: 'nf_core_'  +  'rnaseqpipeline_software_'  + 'mqc_'  + 'versions.yml',
+            name: 'nextflow_rnaseq_software_mqc_versions.yml',
             sort: true,
             newLine: true
         ).set { ch_collated_versions }
